@@ -30,7 +30,7 @@ zfs_state: present
 
 # zrepl snapshot/replication daemon state: present or absent
 # Requires zfs_state: present
-zrepl_state: present
+zfs_zrepl_state: present
 
 # Lock kernel to ZFS-compatible version
 # Prevents kernel updates from breaking ZFS module
