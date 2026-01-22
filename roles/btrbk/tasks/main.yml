@@ -1,6 +1,6 @@
 ---
-# btrbk - minimal btrfs snapshot management
-# Important data lives on ZFS; this is just a safety net for /
+# btrbk - btrfs snapshot management for root and home
+# Important data lives on ZFS; this is a safety net
 
 - name: Install btrbk
   when: btrbk_state | default('present') == 'present'
@@ -68,44 +68,68 @@
             state: directory
             mode: "0755"
 
-        - name: Deploy btrbk configuration
+        - name: Deploy btrbk configurations
           ansible.builtin.template:
-            src: btrbk.conf.j2
-            dest: /etc/btrbk/btrbk.conf
+            src: "{{ item.src }}"
+            dest: "/etc/btrbk/{{ item.dest }}"
             mode: "0644"
+          loop:
+            - {src: btrbk-root.conf.j2, dest: btrbk-root.conf}
+            - {src: btrbk-home.conf.j2, dest: btrbk-home.conf}
 
-        - name: Deploy btrbk.timer
+        - name: Deploy btrbk timers
           ansible.builtin.copy:
-            src: btrbk.timer
-            dest: /etc/systemd/system/btrbk.timer
+            src: "{{ item }}"
+            dest: "/etc/systemd/system/{{ item }}"
             mode: "0644"
+          loop:
+            - btrbk-root.timer
+            - btrbk-home.timer
           notify: Systemd daemon-reload
 
-        - name: Deploy btrbk.service
+        - name: Deploy btrbk services
           ansible.builtin.copy:
-            src: btrbk.service
-            dest: /etc/systemd/system/btrbk.service
+            src: "{{ item }}"
+            dest: "/etc/systemd/system/{{ item }}"
             mode: "0644"
+          loop:
+            - btrbk-root.service
+            - btrbk-home.service
           notify: Systemd daemon-reload
 
         - name: Flush handlers to reload systemd
           ansible.builtin.meta: flush_handlers
 
-        - name: Enable and start btrbk timer
+        - name: Enable and start btrbk timers
           ansible.builtin.systemd_service:
-            name: btrbk.timer
+            name: "{{ item }}"
             state: started
             enabled: true
+          loop:
+            - btrbk-root.timer
+            - btrbk-home.timer
+
+        - name: Remove old single btrbk units if present
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: absent
+          loop:
+            - /etc/systemd/system/btrbk.timer
+            - /etc/systemd/system/btrbk.service
+            - /etc/btrbk/btrbk.conf
 
 - name: Remove btrbk
   when: btrbk_state | default('present') == 'absent'
   become: true
   block:
-    - name: Stop and disable btrbk timer
+    - name: Stop and disable btrbk timers
       ansible.builtin.systemd_service:
-        name: btrbk.timer
+        name: "{{ item }}"
         state: stopped
         enabled: false
+      loop:
+        - btrbk-root.timer
+        - btrbk-home.timer
       failed_when: false
 
     - name: Stop and disable btrfs_root mount
@@ -120,22 +144,20 @@
         path: "{{ item }}"
         state: absent
       loop:
-        - /etc/systemd/system/btrbk.timer
-        - /etc/systemd/system/btrbk.service
+        - /etc/systemd/system/btrbk-root.timer
+        - /etc/systemd/system/btrbk-root.service
+        - /etc/systemd/system/btrbk-home.timer
+        - /etc/systemd/system/btrbk-home.service
         - /etc/systemd/system/mnt-btrfs_root.mount
       notify: Systemd daemon-reload
 
-    - name: Remove old btrbk units if present
+    - name: Remove btrbk configurations
       ansible.builtin.file:
         path: "{{ item }}"
         state: absent
       loop:
-        - /etc/systemd/system/btrbk-home.timer
-        - /etc/systemd/system/btrbk-home.service
-        - /etc/systemd/system/btrbk-root.timer
-        - /etc/systemd/system/btrbk-root.service
-        - /etc/btrbk/btrbk-home.conf
         - /etc/btrbk/btrbk-root.conf
+        - /etc/btrbk/btrbk-home.conf
 
     - name: Unmask standard Fedora btrbk services
       ansible.builtin.systemd_service:
