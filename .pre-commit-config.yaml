@@ -17,7 +17,10 @@ repos:
     rev: v26.1.0
     hooks:
       - id: ansible-lint
+        files: \.(yml|yaml)$
+        exclude: ^\.pre-commit-config\.yaml$
         pass_filenames: false
+        always_run: false
         args: ["local.yml", "roles/"]
         additional_dependencies:
           - ansible
