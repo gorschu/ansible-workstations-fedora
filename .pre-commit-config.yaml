@@ -17,10 +17,8 @@ repos:
     rev: v26.1.0
     hooks:
       - id: ansible-lint
-        files: ^system-ansible/
         pass_filenames: false
-        always_run: false
-        args: ["system-ansible/local.yml", "system-ansible/roles/"]
+        args: ["local.yml", "roles/"]
         additional_dependencies:
           - ansible
 

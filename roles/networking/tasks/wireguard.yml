@@ -1,0 +1,63 @@
+---
+# WireGuard VPN configuration via 1Password
+
+- name: Configure WireGuard VPN
+  when: networking_wireguard_home_enabled | default(false)
+  block:
+    - name: Check if WireGuard connection exists
+      ansible.builtin.command:
+        cmd: nmcli connection show wg-home
+      register: networking_wg_exists
+      changed_when: false
+      failed_when: false
+
+    - name: Fetch and import WireGuard config
+      when: networking_wg_exists.rc != 0
+      block:
+        - name: Get FRITZ!Box Home VPN item UUID from 1Password
+          ansible.builtin.command:
+            cmd: op item list --vault Home --format json
+          register: networking_wg_items
+          changed_when: false
+
+        - name: Extract WireGuard item UUID
+          ansible.builtin.set_fact:
+            networking_wg_item_id: >-
+              {{ (networking_wg_items.stdout | from_json)
+                 | selectattr('title', 'equalto', 'FRITZ!Box Home VPN')
+                 | map(attribute='id')
+                 | first }}
+
+        - name: Fetch WireGuard config from 1Password
+          ansible.builtin.command:
+            cmd: op read "op://Home/{{ networking_wg_item_id }}/wg-home.conf"
+          register: networking_wg_config_result
+          changed_when: false
+          no_log: true
+
+        - name: Import WireGuard connection
+          become: true
+          block:
+            - name: Write WireGuard config to temporary file
+              ansible.builtin.copy:
+                content: "{{ networking_wg_config_result.stdout }}"
+                dest: /tmp/wg-home.conf
+                mode: "0600"
+              no_log: true
+
+            - name: Import WireGuard connection
+              ansible.builtin.command:
+                cmd: nmcli connection import type wireguard file /tmp/wg-home.conf
+              changed_when: true
+              notify: Reload NetworkManager
+
+            - name: Disable auto-connect for WireGuard connection
+              ansible.builtin.command:
+                cmd: nmcli connection modify wg-home connection.autoconnect no
+              changed_when: true
+
+          always:
+            - name: Remove temporary WireGuard config file
+              ansible.builtin.file:
+                path: /tmp/wg-home.conf
+                state: absent
