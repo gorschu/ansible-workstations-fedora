@@ -49,6 +49,7 @@
       register: networking_wifi_metered_status
       changed_when: false
       failed_when: false
+      no_log: true
 
     - name: Configure metered status for WiFi connections
       ansible.builtin.command:
@@ -62,4 +63,5 @@
           (item.item.value.metered | default(false) and item.stdout != 'connection.metered:yes') or
           (not (item.item.value.metered | default(false)) and item.stdout != 'connection.metered:no')
       changed_when: true
+      no_log: true
       notify: Reload NetworkManager
