@@ -34,8 +34,3 @@
       ansible.builtin.dnf:
         name: "{{ base_cli_utils }}"
         state: present
-
-    - name: Install networking tools
-      ansible.builtin.dnf:
-        name: "{{ base_networking_utils }}"
-        state: present

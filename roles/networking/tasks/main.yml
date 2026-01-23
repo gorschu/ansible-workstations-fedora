@@ -1,6 +1,12 @@
 ---
 # Networking configuration - hostname, NetworkManager, WireGuard, Tailscale
 
+- name: Install networking packages
+  become: true
+  ansible.builtin.dnf:
+    name: "{{ networking_packages }}"
+    state: present
+
 - name: Load vault secrets
   ansible.builtin.include_vars:
     file: "{{ playbook_dir }}/vault.yml"

@@ -8,9 +8,3 @@ base_cli_utils:
   - neovim
   - bsdtar
   - yp-tools
-
-base_networking_utils:
-  - sshfs
-  - NetworkManager-tui
-  - network-manager-applet
-  - wireguard-tools

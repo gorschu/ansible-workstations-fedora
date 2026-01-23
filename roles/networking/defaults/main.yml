@@ -1,6 +1,13 @@
 ---
 # Networking role defaults
 
+# Networking packages
+networking_packages:
+  - sshfs
+  - NetworkManager-tui
+  - network-manager-applet
+  - wireguard-tools
+
 # Host to ping for network connectivity checks
 networking_connectivity_check_host: "1.1.1.1"
 
