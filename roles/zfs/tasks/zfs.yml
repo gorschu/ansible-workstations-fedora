@@ -94,12 +94,29 @@
           mountpoint: "/{{ zfs_zrepl.poolname }}/data"
           canmount: "on"
 
+    - name: Set ownership on parent data dataset
+      ansible.builtin.file:
+        path: "/{{ zfs_zrepl.poolname }}/data"
+        owner: "{{ primary_user }}"
+        group: "{{ primary_user }}"
+        mode: "0755"
+        state: directory
+
     - name: Create data child datasets
       community.general.zfs:
-        name: "{{ zfs_zrepl.poolname }}/data/{{ item }}"
+        name: "{{ zfs_zrepl.poolname }}/data/{{ item.name }}"
         state: present
         extra_zfs_properties:
           canmount: "on"
+      loop: "{{ zfs_data_datasets }}"
+
+    - name: Set ownership on data child datasets
+      ansible.builtin.file:
+        path: "/{{ zfs_zrepl.poolname }}/data/{{ item.name }}"
+        owner: "{{ primary_user }}"
+        group: "{{ primary_user }}"
+        mode: "{{ item.mode }}"
+        state: directory
       loop: "{{ zfs_data_datasets }}"
 
 - name: Remove ZFS
