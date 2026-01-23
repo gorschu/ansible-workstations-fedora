@@ -13,7 +13,7 @@ jobs:
     type: snap
     filesystems:
 {% for dataset in zfs_zrepl.snapshot.datasets %}
-      "{{ zfs_zrepl.poolname }}/{{ dataset }}": true
+      "{{ zfs_zrepl.poolname }}/{{ dataset }}<": true
 {% endfor %}
     snapshotting:
       type: periodic
@@ -45,7 +45,7 @@ jobs:
       client_identity: {{ ansible_facts['hostname'] }}
     filesystems:
 {% for dataset in zfs_zrepl.snapshot.datasets %}
-      "{{ zfs_zrepl.poolname }}/{{ dataset }}": true
+      "{{ zfs_zrepl.poolname }}/{{ dataset }}<": true
 {% endfor %}
     snapshotting:
       type: manual
