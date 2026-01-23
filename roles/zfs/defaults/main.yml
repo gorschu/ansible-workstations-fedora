@@ -30,11 +30,11 @@ zfs_zrepl:
 # ZFS data datasets to create (under tank/data/)
 zfs_data_datasets:
   - name: general
-    mode: "0755"
+    mode: "0700"
   - name: projects
     mode: "0700"
   - name: media
-    mode: "0755"
+    mode: "0700"
 
 # Fedora ZFS packages
 zfs_packages:
