@@ -10,10 +10,10 @@
         name:
           - >-
             https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-{{
-            ansible_distribution_major_version }}.noarch.rpm
+            ansible_facts['distribution_major_version'] }}.noarch.rpm
           - >-
             https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-{{
-            ansible_distribution_major_version }}.noarch.rpm
+            ansible_facts['distribution_major_version'] }}.noarch.rpm
         state: present
         disable_gpg_check: true
 

@@ -44,7 +44,7 @@
 
             - name: Remove DMS service wants symlink
               ansible.builtin.file:
-                path: "{{ ansible_env.HOME }}/.config/systemd/user/niri.service.wants/dms.service"
+                path: "{{ ansible_facts['env']['HOME'] }}/.config/systemd/user/niri.service.wants/dms.service"
                 state: absent
 
             - name: Disable DMS service
@@ -91,14 +91,14 @@
           block:
             - name: Ensure niri.service.wants directory exists
               ansible.builtin.file:
-                path: "{{ ansible_env.HOME }}/.config/systemd/user/niri.service.wants"
+                path: "{{ ansible_facts['env']['HOME'] }}/.config/systemd/user/niri.service.wants"
                 state: directory
                 mode: '0755'
 
             - name: Create DMS service symlink
               ansible.builtin.file:
                 src: /usr/lib/systemd/user/dms.service
-                dest: "{{ ansible_env.HOME }}/.config/systemd/user/niri.service.wants/dms.service"
+                dest: "{{ ansible_facts['env']['HOME'] }}/.config/systemd/user/niri.service.wants/dms.service"
                 state: link
 
 # Removal/cleanup when niri_state == 'absent'
@@ -145,5 +145,5 @@
 
     - name: Remove DMS service wants symlink
       ansible.builtin.file:
-        path: "{{ ansible_env.HOME }}/.config/systemd/user/niri.service.wants/dms.service"
+        path: "{{ ansible_facts['env']['HOME'] }}/.config/systemd/user/niri.service.wants/dms.service"
         state: absent

@@ -1,7 +1,7 @@
 ---
 - name: Install batenergy suspend script
   become: true
-  when: ansible_form_factor == "Notebook"
+  when: ansible_facts['form_factor'] == "Notebook"
   block:
     - name: Ensure systemd sleep hook directory exists
       ansible.builtin.file:
