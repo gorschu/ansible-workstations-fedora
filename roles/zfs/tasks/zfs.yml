@@ -85,18 +85,18 @@
         - zfs-zed.service
 
     # Create datasets if they don't exist
-    # Recovery: zfs receive from backup, then ansible skips existing datasets
+    # Mount directly to ~/data
     - name: Create parent data dataset
       community.general.zfs:
         name: "{{ zfs_zrepl.poolname }}/data"
         state: present
         extra_zfs_properties:
-          mountpoint: "/{{ zfs_zrepl.poolname }}/data"
+          mountpoint: "/home/{{ primary_user }}/data"
           canmount: "on"
 
     - name: Set ownership on parent data dataset
       ansible.builtin.file:
-        path: "/{{ zfs_zrepl.poolname }}/data"
+        path: "/home/{{ primary_user }}/data"
         owner: "{{ primary_user }}"
         group: "{{ primary_user }}"
         mode: "0755"
@@ -112,54 +112,17 @@
 
     - name: Set ownership on data child datasets
       ansible.builtin.file:
-        path: "/{{ zfs_zrepl.poolname }}/data/{{ item.name }}"
+        path: "/home/{{ primary_user }}/data/{{ item.name }}"
         owner: "{{ primary_user }}"
         group: "{{ primary_user }}"
         mode: "{{ item.mode }}"
         state: directory
       loop: "{{ zfs_data_datasets }}"
 
-    # Bind mount ZFS data into user's home for Flatpak compatibility
-    - name: Create bind mount target directory
-      ansible.builtin.file:
-        path: "/home/{{ primary_user }}/data"
-        owner: "{{ primary_user }}"
-        group: "{{ primary_user }}"
-        mode: "0755"
-        state: directory
-
-    - name: Deploy ZFS data bind mount unit
-      ansible.builtin.template:
-        src: zfs-data-bind.mount.j2
-        dest: "/etc/systemd/system/home-{{ primary_user }}-data.mount"
-        mode: "0644"
-      notify: Reload systemd
-
-    - name: Flush handlers to reload systemd
-      ansible.builtin.meta: flush_handlers
-
-    - name: Enable and start ZFS data bind mount
-      ansible.builtin.systemd_service:
-        name: "home-{{ primary_user }}-data.mount"
-        enabled: true
-        state: started
-
 - name: Remove ZFS
   when: zfs_state == 'absent'
   become: true
   block:
-    - name: Stop and disable ZFS data bind mount
-      ansible.builtin.systemd_service:
-        name: "home-{{ primary_user }}-data.mount"
-        enabled: false
-        state: stopped
-      failed_when: false
-
-    - name: Remove ZFS data bind mount unit
-      ansible.builtin.file:
-        path: "/etc/systemd/system/home-{{ primary_user }}-data.mount"
-        state: absent
-
     - name: Disable ZFS services
       ansible.builtin.systemd_service:
         name: "{{ item }}"
