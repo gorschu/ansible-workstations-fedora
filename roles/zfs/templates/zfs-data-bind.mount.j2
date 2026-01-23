@@ -1,0 +1,16 @@
+# Bind mount ZFS data to user home directory
+# Managed by Ansible - do not edit manually
+
+[Unit]
+Description=Bind mount ZFS data to home
+After=zfs-mount.service
+RequiresMountsFor=/{{ zfs_zrepl.poolname }}/data
+
+[Mount]
+What=/{{ zfs_zrepl.poolname }}/data
+Where=/home/{{ primary_user }}/data
+Type=none
+Options=bind
+
+[Install]
+WantedBy=local-fs.target
