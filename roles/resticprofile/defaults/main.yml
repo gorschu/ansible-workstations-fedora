@@ -10,3 +10,8 @@ resticprofile_version: "0.32.0"
 # Installation paths
 resticprofile_path: "/opt/resticprofile"
 resticprofile_bin_path: "{{ resticprofile_path }}/bin"
+
+# Backup sources - override in host_vars for machines with ZFS datasets etc.
+resticprofile_backup_sources:
+  - "/home"
+  - "/etc"

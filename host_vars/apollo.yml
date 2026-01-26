@@ -1,5 +1,6 @@
 ---
 kde_present: true
+niri_present: true
 
 zfs_state: present
 zfs_zrepl_state: present

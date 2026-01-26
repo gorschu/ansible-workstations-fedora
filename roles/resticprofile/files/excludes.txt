@@ -17,6 +17,9 @@
 # Browser caches and temporary data
 .ansible
 .cache
+
+# Firefox profiles (synced via Firefox Sync)
+/home/gorschu/data/general/mozilla/.config/mozilla/
 .thumbnails
 .mozilla/firefox/*/OfflineCache/
 .mozilla/firefox/*/startupCache/
@@ -31,7 +34,13 @@
 .config/microsoft-edge/*/Cache/
 .config/mozilla/firefox/*/OfflineCache/
 
+# AI coding assistant caches
+.claude/
+.codex/
+
 # IDE and editor caches
+.local/share/JetBrains/
+.local/share/jetbrains-toolbox/
 .config/Code/CachedData/
 .config/Code/Cache/
 .config/Code/CachedExtensions/
@@ -80,12 +89,16 @@ __pycache__/
 .mypy_cache/
 .pylint.d/
 
-# Virtual environments
+# Virtual environments and Python tooling
 .venv/
 venv/
 env/
 .env/
 virtualenv/
+.local/lib/python*/
+.local/share/pipx/
+.local/share/uv/
+.shiv/
 
 # Language-specific registries
 .cargo/registry/
@@ -95,6 +108,7 @@ go/pkg/
 go/bin/
 .cargo
 .conda
+.local/share/mise/
 
 # Container and VM images
 .local/share/containers/
@@ -120,10 +134,12 @@ downloads/
 .local/share/lutris/
 Games/
 
-# Flatpak
-.var/app
+# Flatpak apps (normal and symlinked location)
+.var/app/
+/home/gorschu/data/general/flatpak/app/
 # backup betterbird
 !.var/app/eu.betterbird.Betterbird/
+!/home/gorschu/data/general/flatpak/app/eu.betterbird.Betterbird/
 # but exclude betterbird cruft (flatpak runtime overhead)
 .var/app/eu.betterbird.Betterbird/.ld.so/
 .var/app/eu.betterbird.Betterbird/.local/
@@ -197,6 +213,7 @@ Dropbox
 .local/share/mega/
 
 # Misc application caches and configs to skip
+.local/share/vicinae/
 .config/@filen
 .config/WowUpCf
 .config/discord

@@ -17,18 +17,18 @@
 {% for backend in resticprofile_backend_names %}
 [workstation-{{ backend }}]
   inherit = "default"
-  repository = "{{ resticprofile_backend_credentials[backend].repository }}"
+  repository = "{{ resticprofile_backend_credentials[backend][ansible_facts['hostname']].repository }}"
   env-file = ["/etc/resticprofile/{{ backend }}.env"]
   initialize = true
   systemd-drop-in-files = ["99-skip-metered.conf"]
 
   [workstation-{{ backend }}.backup]
-    source = ["/home", "/etc"]
+    source = {{ resticprofile_backup_sources | to_json }}
     exclude-file = "/etc/resticprofile/excludes.txt"
     exclude-caches = true
     one-file-system = true
 
-    tag = ["host:{{ ansible_hostname }}", "system-backup"]
+    tag = ["host:{{ ansible_facts['hostname'] }}", "system-backup"]
 
     limit-upload = 3840
     schedule = "*-*-* 0/3:00:00"

@@ -3,6 +3,9 @@
 # Role-specific settings (including state toggles) are in role defaults
 # Override per-host in host_vars/
 
+# Use system Python to avoid mise shim issues
+ansible_python_interpreter: /usr/bin/python3
+
 timezone: Europe/Berlin
 
 # Desktop environment presence (set per-host in host_vars/)

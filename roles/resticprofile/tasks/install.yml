@@ -1,0 +1,83 @@
+---
+# Install resticprofile binary and dependencies
+
+- name: Install restic and Python packages
+  ansible.builtin.dnf:
+    name:
+      - restic
+      - python3-pip
+    state: present
+
+- name: Create resticprofile bin directory
+  ansible.builtin.file:
+    path: "{{ resticprofile_bin_path }}"
+    state: directory
+    mode: "0755"
+    owner: root
+    group: root
+
+- name: Check if resticprofile binary already installed with correct version
+  ansible.builtin.command:
+    cmd: "{{ resticprofile_bin_path }}/resticprofile version"
+  register: resticprofile_installed_version
+  changed_when: false
+  failed_when: false
+
+- name: Download and install resticprofile
+  when: resticprofile_installed_version.rc != 0 or
+        resticprofile_version not in resticprofile_installed_version.stdout
+  block:
+    - name: Create temp file for binary download
+      ansible.builtin.tempfile:
+        state: file
+        suffix: .tar.gz
+      register: resticprofile_temp_archive
+      changed_when: false
+
+    - name: Download resticprofile binary
+      ansible.builtin.uri:
+        url: "https://github.com/creativeprojects/resticprofile/releases/download/\
+          v{{ resticprofile_version }}/resticprofile_{{ resticprofile_version }}_linux_amd64.tar.gz"
+        dest: "{{ resticprofile_temp_archive.path }}"
+        mode: "0600"
+        follow_redirects: all
+        force: true
+
+    - name: Extract resticprofile binary
+      ansible.builtin.unarchive:
+        src: "{{ resticprofile_temp_archive.path }}"
+        dest: "{{ resticprofile_bin_path }}"
+        remote_src: true
+
+    - name: Fix ownership and permissions
+      ansible.builtin.file:
+        path: "{{ resticprofile_bin_path }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+        recurse: true
+
+  always:
+    - name: Cleanup download
+      ansible.builtin.file:
+        path: "{{ resticprofile_temp_archive.path | default('/nonexistent') }}"
+        state: absent
+      changed_when: false
+
+- name: Install apprise
+  block:
+    - name: Create apprise venv directory
+      ansible.builtin.file:
+        path: /opt/resticprofile/apprise-venv
+        state: directory
+        mode: "0755"
+        owner: root
+        group: root
+
+    - name: Install apprise in isolated venv
+      ansible.builtin.pip:
+        name: apprise
+        virtualenv: /opt/resticprofile/apprise-venv
+        virtualenv_command: /usr/bin/python3 -m venv
+        state: present
