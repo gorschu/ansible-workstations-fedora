@@ -28,7 +28,7 @@
         type: wifi
         ssid: "{{ item.0.value.ssid }}"
         wifi_sec:
-          key-mgmt: wpa-psk
+          key-mgmt: "{{ item.0.value.keymgmt | default('wpa-psk') }}"
           psk: "{{ item.0.value.psk }}"
         autoconnect: true
         autoconnect_priority: 10
