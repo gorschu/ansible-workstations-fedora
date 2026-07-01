@@ -1,0 +1,52 @@
+---
+# Uninstall resticprofile
+
+- name: Check installed resticprofile binary
+  ansible.builtin.stat:
+    path: "{{ backup_resticprofile_binary_path }}"
+  register: backup_resticprofile_binary_stat
+
+- name: Check installed resticprofile config
+  ansible.builtin.stat:
+    path: /etc/resticprofile/profiles.toml
+  register: backup_resticprofile_config_stat
+
+- name: Unschedule resticprofile timers
+  when:
+    - backup_resticprofile_binary_stat.stat.exists
+    - backup_resticprofile_config_stat.stat.exists
+  block:
+    - name: Unschedule all resticprofile timers
+      ansible.builtin.command:
+        cmd: "{{ backup_resticprofile_binary_path }} unschedule --all"
+      changed_when: true
+      failed_when: false
+      register: backup_resticprofile_unschedule_result
+
+    - name: Systemd daemon-reload after unscheduling
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+
+- name: Display unschedule output
+  when:
+    - backup_resticprofile_unschedule_result is defined
+    - backup_resticprofile_unschedule_result.stdout_lines is defined
+  ansible.builtin.debug:
+    msg: "{{ backup_resticprofile_unschedule_result.stdout_lines }}"
+
+- name: Remove resticprofile directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /etc/resticprofile
+    - /var/lib/resticprofile
+    - "{{ backup_resticprofile_symlink_path }}"
+    - "{{ backup_resticprofile_install_dir }}"
+
+- name: Remove resticprofile dependencies
+  when: backup_resticprofile_remove_packages_on_absent | bool
+  ansible.builtin.dnf:
+    name: "{{ backup_resticprofile_packages }}"
+    state: absent
+  failed_when: false

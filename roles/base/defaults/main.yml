@@ -1,0 +1,10 @@
+---
+# Fedora already provides most base workstation packages via the KDE Spin.
+# Keep these lists small and explicit; add only packages this playbook actually
+# needs but the installer does not provide.
+base_system_utils: []
+base_cli_utils:
+  - zsh
+
+# Host-specific extra packages (override in host_vars)
+base_extra_packages: []

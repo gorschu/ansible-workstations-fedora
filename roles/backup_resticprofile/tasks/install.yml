@@ -1,0 +1,79 @@
+---
+# Install resticprofile and dependencies
+
+- name: Install resticprofile dependencies
+  ansible.builtin.dnf:
+    name: "{{ backup_resticprofile_packages }}"
+    state: present
+
+- name: Create resticprofile bin directory
+  ansible.builtin.file:
+    path: "{{ backup_resticprofile_bin_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Check installed resticprofile version
+  ansible.builtin.command:
+    cmd: "{{ backup_resticprofile_binary_path }} version"
+  register: backup_resticprofile_installed_version
+  changed_when: false
+  failed_when: false
+
+- name: Install pinned resticprofile binary
+  when: >-
+    backup_resticprofile_installed_version.rc != 0
+    or ('version ' ~ backup_resticprofile_version) not in backup_resticprofile_installed_version.stdout
+  block:
+    - name: Create temporary resticprofile download directory
+      ansible.builtin.tempfile:
+        state: directory
+        suffix: resticprofile
+      register: backup_resticprofile_temp_dir
+      changed_when: false
+
+    - name: Download pinned resticprofile release
+      ansible.builtin.get_url:
+        url: "{{ backup_resticprofile_archive_url }}"
+        dest: "{{ backup_resticprofile_temp_dir.path }}/{{ backup_resticprofile_archive_name }}"
+        checksum: "sha256:{{ backup_resticprofile_archive_sha256 }}"
+        mode: "0600"
+
+    - name: Extract resticprofile release
+      ansible.builtin.unarchive:
+        src: "{{ backup_resticprofile_temp_dir.path }}/{{ backup_resticprofile_archive_name }}"
+        dest: "{{ backup_resticprofile_temp_dir.path }}"
+        remote_src: true
+
+    - name: Install resticprofile binary
+      ansible.builtin.copy:
+        src: "{{ backup_resticprofile_temp_dir.path }}/resticprofile"
+        dest: "{{ backup_resticprofile_binary_path }}"
+        remote_src: true
+        owner: root
+        group: root
+        mode: "0755"
+
+  always:
+    - name: Remove temporary resticprofile download directory
+      ansible.builtin.file:
+        path: "{{ backup_resticprofile_temp_dir.path | default('/nonexistent') }}"
+        state: absent
+      changed_when: false
+
+- name: Ensure /usr/local/bin exists
+  ansible.builtin.file:
+    path: "{{ backup_resticprofile_symlink_path | dirname }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Link resticprofile into the default command path
+  ansible.builtin.file:
+    src: "{{ backup_resticprofile_binary_path }}"
+    dest: "{{ backup_resticprofile_symlink_path }}"
+    state: link
+    owner: root
+    group: root

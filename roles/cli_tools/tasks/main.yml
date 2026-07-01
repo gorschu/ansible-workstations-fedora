@@ -1,0 +1,15 @@
+---
+- name: Validate CLI tools configuration
+  ansible.builtin.assert:
+    that:
+      - cli_tools_state in ["present", "absent"]
+    quiet: true
+
+- name: Install Fedora-native CLI tools
+  become: true
+  ansible.builtin.dnf:
+    name: "{{ cli_tools_packages + cli_tools_extra_packages }}"
+    state: present
+  when:
+    - cli_tools_state == "present"
+    - (cli_tools_packages + cli_tools_extra_packages) | length > 0

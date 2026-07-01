@@ -1,0 +1,162 @@
+---
+- name: Rotate installer bootstrap credentials
+  when: bootstrap_credentials_state == 'present'
+  become: true
+  block:
+    - name: Ensure bootstrap vault file exists
+      ansible.builtin.stat:
+        path: "{{ bootstrap_credentials_vault_file }}"
+      register: bootstrap_credentials_vault_stat
+      delegate_to: localhost
+      become: false
+
+    - name: Fail if bootstrap vault file is missing
+      ansible.builtin.fail:
+        msg: >-
+          {{ bootstrap_credentials_vault_file }} is missing. Create it with
+          ansible-vault and run phase0 before phase1 on fresh installs.
+      when: not bootstrap_credentials_vault_stat.stat.exists
+
+    - name: Load bootstrap vault secrets
+      ansible.builtin.include_vars:
+        file: "{{ bootstrap_credentials_vault_file }}"
+      no_log: true
+      become: false
+
+    - name: Validate bootstrap vault secrets
+      ansible.builtin.assert:
+        that:
+          - vault_bootstrap_luks_passphrase is defined
+          - vault_bootstrap_luks_passphrase | length > 0
+          - vault_bootstrap_luks_passphrase != bootstrap_credentials_install_luks_passphrase
+          - vault_bootstrap_user_password_hash is defined
+          - vault_bootstrap_user_password_hash is match('^\\$')
+        fail_msg: >-
+          {{ bootstrap_credentials_vault_file }} must define a real
+          vault_bootstrap_luks_passphrase and a hashed
+          vault_bootstrap_user_password_hash.
+      no_log: true
+
+    - name: Ensure Fedora installer storage facts exist
+      ansible.builtin.stat:
+        path: "{{ bootstrap_credentials_facts_file }}"
+      register: bootstrap_credentials_facts_stat
+
+    - name: Fail if Fedora installer storage facts are missing
+      ansible.builtin.fail:
+        msg: >-
+          {{ bootstrap_credentials_facts_file }} is missing. Phase0 expects a
+          machine installed by the Fedora Kickstart flow.
+      when: not bootstrap_credentials_facts_stat.stat.exists
+
+    - name: Read Fedora installer storage facts
+      ansible.builtin.slurp:
+        src: "{{ bootstrap_credentials_facts_file }}"
+      register: bootstrap_credentials_facts_raw
+
+    - name: Parse Fedora installer storage facts
+      ansible.builtin.set_fact:
+        bootstrap_credentials_installer_facts: "{{ bootstrap_credentials_facts_raw.content | b64decode | from_yaml }}"
+
+    - name: Rotate LUKS passphrases
+      when: bootstrap_credentials_manage_luks | bool
+      block:
+        - name: Set LUKS devices from Fedora installer facts
+          ansible.builtin.set_fact:
+            bootstrap_credentials_luks_devices:
+              - label: root
+                device: "{{ bootstrap_credentials_installer_facts.partitions.root }}"
+              - label: data
+                device: "{{ bootstrap_credentials_installer_facts.partitions.data }}"
+
+        - name: Validate LUKS devices from Fedora installer facts
+          ansible.builtin.assert:
+            that:
+              - item.device is defined
+              - item.device is match('^/dev/')
+            fail_msg: "Invalid {{ item.label }} LUKS device in {{ bootstrap_credentials_facts_file }}"
+          loop: "{{ bootstrap_credentials_luks_devices }}"
+          loop_control:
+            label: "{{ item.label }}"
+
+        - name: Verify installer fact devices are LUKS
+          ansible.builtin.command:
+            argv:
+              - cryptsetup
+              - isLuks
+              - "{{ item.device }}"
+          changed_when: false
+          loop: "{{ bootstrap_credentials_luks_devices }}"
+          loop_control:
+            label: "{{ item.label }}"
+
+        - name: Test real LUKS passphrase
+          ansible.builtin.command:
+            argv:
+              - cryptsetup
+              - open
+              - --test-passphrase
+              - --key-file
+              - "-"
+              - "{{ item.device }}"
+            stdin: "{{ vault_bootstrap_luks_passphrase }}"
+            stdin_add_newline: false
+          register: bootstrap_credentials_real_luks_tests
+          changed_when: false
+          failed_when: false
+          loop: "{{ bootstrap_credentials_luks_devices }}"
+          loop_control:
+            label: "{{ item.label }}"
+          no_log: true
+
+        - name: Add real LUKS passphrase where still missing
+          community.crypto.luks_device:
+            device: "{{ item.item.device }}"
+            passphrase: "{{ bootstrap_credentials_install_luks_passphrase }}"
+            new_passphrase: "{{ vault_bootstrap_luks_passphrase }}"
+          loop: "{{ bootstrap_credentials_real_luks_tests.results }}"
+          loop_control:
+            label: "{{ item.item.label }}"
+          no_log: true
+          when: item.rc != 0
+
+        - name: Verify real LUKS passphrase after rotation
+          ansible.builtin.command:
+            argv:
+              - cryptsetup
+              - open
+              - --test-passphrase
+              - --key-file
+              - "-"
+              - "{{ item.device }}"
+            stdin: "{{ vault_bootstrap_luks_passphrase }}"
+            stdin_add_newline: false
+          changed_when: false
+          loop: "{{ bootstrap_credentials_luks_devices }}"
+          loop_control:
+            label: "{{ item.label }}"
+          no_log: true
+
+        - name: Remove installer bootstrap LUKS passphrase
+          community.crypto.luks_device:
+            device: "{{ item.device }}"
+            passphrase: "{{ vault_bootstrap_luks_passphrase }}"
+            remove_passphrase: "{{ bootstrap_credentials_install_luks_passphrase }}"
+          loop: "{{ bootstrap_credentials_luks_devices }}"
+          loop_control:
+            label: "{{ item.label }}"
+          no_log: true
+
+    - name: Set real primary user password hash
+      ansible.builtin.user:
+        name: "{{ primary_user }}"
+        password: "{{ vault_bootstrap_user_password_hash }}"
+        update_password: always
+      no_log: true
+      when: bootstrap_credentials_manage_user_password | bool
+
+    - name: Report phase0 completion
+      ansible.builtin.debug:
+        msg: >-
+          Phase0 rotated installer bootstrap credentials. Reboot manually,
+          unlock with the real LUKS passphrase, then continue with phase1.

@@ -1,0 +1,13 @@
+---
+dev_tools_state: present
+
+dev_tools_packages:
+  - distrobox
+  - golang
+  - lua
+  - luarocks
+  - rust
+  - rustup
+  - uv
+
+dev_tools_extra_packages: []

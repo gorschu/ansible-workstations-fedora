@@ -1,0 +1,15 @@
+---
+- name: Validate cloud tools configuration
+  ansible.builtin.assert:
+    that:
+      - cloud_tools_state in ["present", "absent"]
+    quiet: true
+
+- name: Install Fedora-native cloud tools
+  become: true
+  ansible.builtin.dnf:
+    name: "{{ cloud_tools_packages + cloud_tools_extra_packages }}"
+    state: present
+  when:
+    - cloud_tools_state == "present"
+    - (cloud_tools_packages + cloud_tools_extra_packages) | length > 0

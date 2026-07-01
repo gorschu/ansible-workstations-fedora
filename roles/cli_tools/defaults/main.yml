@@ -1,0 +1,24 @@
+---
+cli_tools_state: present
+
+# Fedora-native command line tools that are used directly by the user shell and
+# dotfiles. Keep service/workflow-specific tools in their owning roles.
+cli_tools_packages:
+  - btop
+  - difftastic
+  - du-dust
+  - eza
+  - fastfetch
+  - fd-find
+  - fzf
+  - gdu
+  - ImageMagick
+  - pandoc-cli
+  - qpdf
+  - renameutils
+  - ripgrep
+  - tmux
+  - trash-cli
+  - zoxide
+
+cli_tools_extra_packages: []

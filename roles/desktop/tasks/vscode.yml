@@ -1,0 +1,43 @@
+---
+# Visual Studio Code
+
+- name: Configure Visual Studio Code
+  become: true
+  block:
+    - name: Add Microsoft GPG key
+      ansible.builtin.rpm_key:
+        state: "{{ 'present' if desktop_vscode_state == 'present' else 'absent' }}"
+        key: "{{ desktop_vscode_repo_key }}"
+
+    - name: Check whether Visual Studio Code repository already exists
+      ansible.builtin.stat:
+        path: /etc/yum.repos.d/vscode.repo
+      register: desktop_vscode_repo_file
+
+    - name: Configure Visual Studio Code repository
+      ansible.builtin.copy:
+        dest: /etc/yum.repos.d/vscode.repo
+        content: |
+          [vscode]
+          baseurl = {{ desktop_vscode_repo_baseurl }}
+          enabled = 1
+          gpgcheck = 1
+          gpgkey = {{ desktop_vscode_repo_key }}
+          name = Visual Studio Code
+        owner: root
+        group: root
+        mode: "0644"
+      when:
+        - desktop_vscode_state == 'present'
+        - not desktop_vscode_repo_file.stat.exists
+
+    - name: Remove Visual Studio Code repository
+      ansible.builtin.file:
+        path: /etc/yum.repos.d/vscode.repo
+        state: absent
+      when: desktop_vscode_state == 'absent'
+
+    - name: Install Visual Studio Code
+      ansible.builtin.dnf:
+        name: "{{ desktop_vscode_package }}"
+        state: "{{ desktop_vscode_state }}"

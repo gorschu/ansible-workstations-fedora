@@ -1,0 +1,18 @@
+---
+# Base system configuration
+
+- name: Configure primary user
+  ansible.builtin.import_tasks: user.yml
+  tags: user
+
+- name: Configure tmpfiles.d rules
+  ansible.builtin.import_tasks: tmpfiles.yml
+  tags: tmpfiles
+
+- name: Install explicitly configured base packages
+  ansible.builtin.import_tasks: packages.yml
+  tags: packages
+
+- name: Configure base sysctl settings
+  ansible.builtin.import_tasks: sysctl.yml
+  tags: sysctl

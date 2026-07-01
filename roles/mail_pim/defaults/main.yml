@@ -1,0 +1,22 @@
+---
+mail_pim_state: present
+
+mail_pim_mail_enabled: true
+mail_pim_pim_enabled: true
+
+mail_pim_mail_packages:
+  - isync
+  - msmtp
+  - neomutt
+  - notmuch
+  - par
+  - poppler-utils
+  - urlscan
+  - w3m
+
+mail_pim_pim_packages:
+  - khal
+  - khard
+  - vdirsyncer
+
+mail_pim_extra_packages: []

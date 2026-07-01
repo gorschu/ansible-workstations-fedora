@@ -1,0 +1,26 @@
+---
+rpmfusion_state: present
+rpmfusion_free_enabled: true
+rpmfusion_nonfree_enabled: true
+rpmfusion_openh264_enabled: true
+rpmfusion_appstream_data_enabled: true
+
+rpmfusion_release_baseurl: https://mirrors.rpmfusion.org
+rpmfusion_release_version: "{{ ansible_facts['distribution_major_version'] }}"
+rpmfusion_free_release_rpm: >-
+  {{
+    rpmfusion_release_baseurl
+    ~ '/free/fedora/rpmfusion-free-release-'
+    ~ rpmfusion_release_version
+    ~ '.noarch.rpm'
+  }}
+rpmfusion_nonfree_release_rpm: >-
+  {{
+    rpmfusion_release_baseurl
+    ~ '/nonfree/fedora/rpmfusion-nonfree-release-'
+    ~ rpmfusion_release_version
+    ~ '.noarch.rpm'
+  }}
+rpmfusion_appstream_data_packages:
+  - rpmfusion-free-appstream-data
+  - rpmfusion-nonfree-appstream-data

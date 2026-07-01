@@ -1,0 +1,14 @@
+---
+- name: Homebrew.update_new_install
+  become: true
+  become_user: "{{ primary_user }}"
+  ansible.builtin.command:
+    argv:
+      - "{{ homebrew_brew_bin }}"
+      - update
+      - --force
+      - --quiet
+  environment:
+    HOME: "{{ primary_user_home }}"
+    HOMEBREW_FORCE_VENDOR_RUBY: "1"
+  changed_when: true

@@ -1,0 +1,22 @@
+---
+multimedia_packages:
+  - mpv
+  - vlc
+  - vlc-cli
+  - vlc-gui-qt
+  - vlc-plugins-all
+  - vlc-plugins-freeworld
+
+multimedia_codec_packages:
+  - ffmpeg
+  - gstreamer1-plugins-bad-free
+  - gstreamer1-plugins-bad-freeworld
+  - gstreamer1-plugins-good
+  - gstreamer1-plugins-ugly
+  - gstreamer1-libav
+
+multimedia_hw_accel_packages:
+  - intel-media-driver
+  - libva-intel-driver
+  - mesa-va-drivers-freeworld.x86_64
+  - mesa-vulkan-drivers-freeworld.x86_64

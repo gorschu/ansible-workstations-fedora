@@ -1,0 +1,14 @@
+[Unit]
+Description=Linuxbrew preserved data subvolume
+After=mnt-btrfs_data.mount
+RequiresMountsFor={{ storage_btrfs_top_mountpoint }}
+
+[Mount]
+What={{ storage_btrfs_device_final }}
+Where={{ storage_btrfs_homebrew_mountpoint }}
+Type=btrfs
+Options={{ storage_btrfs_homebrew_mount_options }}
+DirectoryMode=0755
+
+[Install]
+WantedBy=local-fs.target

@@ -1,0 +1,59 @@
+---
+# Ansible playbook for Fedora Workstation setup
+#
+
+- name: Configure Fedora Workstation
+  hosts: all
+  gather_facts: true
+
+  # group_vars/all/main.yml and host_vars/ auto-loaded by Ansible
+  # vault.yml loaded by roles that need it (networking, resticprofile)
+
+  # Phase tags for new installs:
+  #   phase0 - rotate dummy installer credentials using bootstrap.vault.yml
+  #   phase1 - base + storage boot contract only; reboot after this on fresh installs
+  #   phase2 - post-reboot storage mounts, backup, Homebrew, 1Password, hardware basics
+  #   phase3 - system services, RPM Fusion, networking, printing, backups, virtualization
+  #   phase4 - multimedia, KDE extras, workstation CLI tools, and selected desktop applications
+  roles:
+    - role: bootstrap_credentials
+      tags: [never, phase0]
+    - role: base
+      tags: [base, phase1]
+    - role: storage_btrfs
+      tags: [storage, btrfs, data]
+    - role: backup_btrbk
+      tags: [btrbk, storage, backup, phase2]
+    - role: homebrew
+      tags: [homebrew, brew, phase2]
+    - role: onepassword
+      tags: [onepassword, phase2]
+    - role: notebook
+      tags: [notebook, power, phase2]
+    - role: rpmfusion
+      tags: [rpmfusion, repos, phase3]
+    - role: networking
+      tags: [networking, tailscale, phase3]
+    - role: backup_resticprofile
+      tags: [resticprofile, backup, phase3]
+    - role: printing
+      tags: [printing, cups, phase3]
+    - role: virtualization
+      tags: [virtualization, containers, phase3]
+    - role: sync_tools
+      tags: [sync_tools, sync, phase3]
+    - role: multimedia
+      tags: [multimedia, codecs, phase4]
+    - role: cli_tools
+      tags: [cli, tools, phase4]
+    - role: mail_pim
+      tags: [mail, pim, phase4]
+    - role: dev_tools
+      tags: [dev_tools, development, phase4]
+    - role: cloud_tools
+      tags: [cloud, tools, phase4]
+    - role: kde
+      tags: [kde, desktop, phase4]
+    - role: desktop
+      tags: [desktop, gui, vscode, chrome, vivaldi, phase4]
+# vim: set ft=yaml.ansible:

@@ -1,0 +1,65 @@
+---
+# Networking configuration - hostname, NetworkManager, WireGuard, Tailscale
+
+- name: Configure baseline networking services
+  become: true
+  block:
+    - name: Install networking packages
+      ansible.builtin.dnf:
+        name: "{{ networking_packages }}"
+        state: present
+
+    - name: Enable and start firewalld
+      ansible.builtin.systemd_service:
+        name: firewalld.service
+        enabled: true
+        state: started
+
+    - name: Assign trusted subnets to home zone
+      ansible.posix.firewalld:
+        source: "{{ item }}"
+        zone: home
+        permanent: true
+        state: enabled
+        immediate: true
+      loop: "{{ networking_firewalld_home_sources }}"
+
+    - name: Enable services in home zone
+      ansible.posix.firewalld:
+        service: "{{ item }}"
+        zone: home
+        permanent: true
+        state: enabled
+        immediate: true
+      loop: "{{ networking_firewalld_home_services }}"
+
+- name: Determine whether networking vault secrets are needed
+  ansible.builtin.set_fact:
+    networking_vault_required: >-
+      {{ networking_wifi_enabled | bool
+         or networking_wireguard_home_enabled | bool
+         or networking_tailscale_state == 'present' }}
+  tags: [networking, tailscale, wireguard, networkmanager, hostname]
+
+- name: Load vault secrets
+  when: networking_vault_required | bool
+  ansible.builtin.include_vars:
+    file: "{{ playbook_dir }}/vault.yml"
+  no_log: true
+  tags: [networking, tailscale, wireguard, networkmanager, hostname]
+
+- name: Configure hostname
+  ansible.builtin.import_tasks: hostname.yml
+  tags: [hostname]
+
+- name: Configure NetworkManager
+  ansible.builtin.import_tasks: networkmanager.yml
+  tags: [networkmanager]
+
+- name: Configure WireGuard
+  ansible.builtin.import_tasks: wireguard.yml
+  tags: [wireguard, vpn]
+
+- name: Configure Tailscale
+  ansible.builtin.import_tasks: tailscale.yml
+  tags: [tailscale, vpn]

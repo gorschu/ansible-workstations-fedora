@@ -1,0 +1,14 @@
+---
+all:
+  children:
+    workstations:
+      hosts:
+        fedora-kde-test:
+          ansible_host: 127.0.0.1
+          ansible_port: 2222
+          ansible_user: gorschu
+          ansible_connection: ssh
+          ansible_ssh_common_args: >-
+            -F /dev/null
+            -o StrictHostKeyChecking=no
+            -o UserKnownHostsFile=/dev/null

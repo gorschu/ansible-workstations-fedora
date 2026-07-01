@@ -1,0 +1,45 @@
+---
+- name: Validate notebook configuration
+  ansible.builtin.assert:
+    that:
+      - notebook_state in ["auto", "present", "absent"]
+      - notebook_batenergy_state in ["present", "absent"]
+    quiet: true
+
+- name: Set notebook activation fact
+  ansible.builtin.set_fact:
+    notebook_enabled: >-
+      {{ notebook_state == "present"
+         or (notebook_state == "auto" and ansible_facts.get("form_factor", "") == "Notebook") }}
+
+- name: Configure notebook
+  become: true
+  when: notebook_enabled
+  block:
+    - name: Install notebook packages
+      ansible.builtin.dnf:
+        name: "{{ notebook_packages }}"
+        state: present
+
+    - name: Install batenergy sleep hook
+      when: notebook_batenergy_state == "present"
+      block:
+        - name: Ensure systemd sleep hook directory exists
+          ansible.builtin.file:
+            path: /usr/lib/systemd/system-sleep
+            state: directory
+            mode: "0755"
+
+        - name: Deploy batenergy sleep hook
+          ansible.builtin.copy:
+            src: "{{ notebook_batenergy_source }}"
+            dest: "{{ notebook_batenergy_dest }}"
+            owner: root
+            group: root
+            mode: "0755"
+
+    - name: Remove batenergy sleep hook when disabled
+      ansible.builtin.file:
+        path: "{{ notebook_batenergy_dest }}"
+        state: absent
+      when: notebook_batenergy_state == "absent"

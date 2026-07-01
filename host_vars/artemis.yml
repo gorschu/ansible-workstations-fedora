@@ -1,0 +1,24 @@
+---
+# desktop
+kde_state: present
+
+backup_resticprofile_state: present
+backup_resticprofile_backup_sources:
+  - /home
+  - /home/gorschu/data
+  - /etc
+
+# network
+networking_tailscale_state: present
+
+# virtualization
+virtualization_libvirt_state: present
+virtualization_incus_state: present
+
+# filesystems
+storage_zfs_state: absent
+storage_zfs_zrepl_state: absent
+backup_btrbk_state: present
+
+base_extra_packages:
+  - unrar

@@ -1,0 +1,15 @@
+---
+- name: Validate developer tools configuration
+  ansible.builtin.assert:
+    that:
+      - dev_tools_state in ["present", "absent"]
+    quiet: true
+
+- name: Install Fedora-native developer tools
+  become: true
+  ansible.builtin.dnf:
+    name: "{{ dev_tools_packages + dev_tools_extra_packages }}"
+    state: present
+  when:
+    - dev_tools_state == "present"
+    - (dev_tools_packages + dev_tools_extra_packages) | length > 0

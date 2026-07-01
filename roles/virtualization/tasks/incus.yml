@@ -1,0 +1,64 @@
+---
+- name: Configure Incus
+  become: true
+  when: virtualization_incus_state == 'present'
+  block:
+    - name: Install Incus container manager and tooling
+      ansible.builtin.dnf:
+        name: "{{ virtualization_incus_packages }}"
+        state: present
+
+    - name: Ensure incus-admin group exists
+      ansible.builtin.group:
+        name: incus-admin
+        state: present
+
+    - name: Add users to incus-admin group
+      ansible.builtin.user:
+        name: "{{ item }}"
+        groups: incus-admin
+        append: true
+      loop: "{{ virtualization_incus_admin_users }}"
+      when: virtualization_incus_admin_users | length > 0
+
+    - name: Ensure root subordinate UID range for Incus
+      ansible.builtin.lineinfile:
+        path: /etc/subuid
+        create: true
+        mode: "0644"
+        regexp: '^root:1000000:1000000000$'
+        line: "{{ virtualization_incus_root_subid_range }}"
+        state: present
+
+    - name: Ensure root subordinate GID range for Incus
+      ansible.builtin.lineinfile:
+        path: /etc/subgid
+        create: true
+        mode: "0644"
+        regexp: '^root:1000000:1000000000$'
+        line: "{{ virtualization_incus_root_subid_range }}"
+        state: present
+
+    - name: Enable and start Incus socket
+      ansible.builtin.systemd_service:
+        name: incus.socket
+        enabled: true
+        state: started
+
+    - name: Trust incusbr0 interface in firewalld
+      ansible.posix.firewalld:
+        zone: trusted
+        interface: incusbr0
+        permanent: true
+        immediate: true
+        state: enabled
+
+- name: Remove Incus
+  become: true
+  when: virtualization_incus_state == 'absent'
+  block:
+    - name: Remove Incus packages
+      when: virtualization_incus_remove_packages_on_absent | bool
+      ansible.builtin.dnf:
+        name: "{{ virtualization_incus_packages }}"
+        state: absent

@@ -1,0 +1,70 @@
+---
+- name: Configure libvirt
+  become: true
+  when: virtualization_libvirt_state == 'present'
+  block:
+    - name: Install libvirt/QEMU packages
+      ansible.builtin.dnf:
+        name: "{{ virtualization_libvirt_packages }}"
+        state: present
+
+    - name: Ensure libvirt group exists
+      ansible.builtin.group:
+        name: libvirt
+        state: present
+
+    - name: Add users to libvirt group
+      ansible.builtin.user:
+        name: "{{ item }}"
+        groups: libvirt
+        append: true
+      loop: "{{ virtualization_libvirt_users }}"
+      when: virtualization_libvirt_users | length > 0
+
+    - name: Enable and start libvirt sockets
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        enabled: true
+        state: started
+      loop: "{{ virtualization_libvirt_sockets }}"
+
+    - name: Create libvirt storage pool directory
+      ansible.builtin.file:
+        path: "{{ virtualization_libvirt_storage_pool_path }}"
+        state: directory
+        mode: "0711"
+        owner: root
+        group: root
+      when: virtualization_libvirt_storage_pool_enabled
+
+    - name: Define default storage pool
+      community.libvirt.virt_pool:
+        uri: "{{ virtualization_libvirt_uri }}"
+        name: default
+        state: present
+        xml: |
+          <pool type='dir'>
+            <name>default</name>
+            <target>
+              <path>{{ virtualization_libvirt_storage_pool_path }}</path>
+            </target>
+          </pool>
+      when: virtualization_libvirt_storage_pool_enabled
+
+    - name: Activate default storage pool
+      community.libvirt.virt_pool:
+        uri: "{{ virtualization_libvirt_uri }}"
+        name: default
+        state: active
+        autostart: true
+      when: virtualization_libvirt_storage_pool_enabled
+
+- name: Remove libvirt
+  become: true
+  when: virtualization_libvirt_state == 'absent'
+  block:
+    - name: Remove libvirt packages
+      when: virtualization_libvirt_remove_packages_on_absent | bool
+      ansible.builtin.dnf:
+        name: "{{ virtualization_libvirt_packages }}"
+        state: absent

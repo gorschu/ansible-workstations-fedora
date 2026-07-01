@@ -1,0 +1,100 @@
+---
+# Common virtualization packages (shared across roles)
+virtualization_common_packages:
+  - swtpm
+  - virt-viewer
+
+# Incus configuration
+virtualization_incus_state: absent  # present or absent
+
+# Packages required for Incus (role-specific)
+virtualization_incus_packages:
+  - incus
+  - incus-tools
+  - incus-selinux
+
+# Users granted Incus administrative access. Override in inventory or play vars to customize.
+virtualization_incus_admin_users:
+  - "{{ primary_user }}"
+
+# Subordinate UID/GID range assigned to root for unprivileged Incus containers.
+virtualization_incus_root_subid_range: "root:1000000:1000000000"
+
+# Fedora does not install Incus by default, but keep absent conservative unless a
+# cleanup run explicitly asks to remove it.
+virtualization_incus_remove_packages_on_absent: false
+
+# Podman configuration
+virtualization_podman_state: present  # present or absent
+
+# Core Podman packages
+virtualization_podman_packages:
+  - podman
+  - netavark
+  - aardvark-dns
+
+# Optional Podman packages
+virtualization_podman_optional_packages:
+  - podman-compose
+
+# Whether to install optional packages
+virtualization_podman_install_optional: true
+
+# Whether to enable podman-restart.service (container restart policies on boot)
+virtualization_podman_enable_restart_service: true
+
+# Fedora Workstation may carry Podman through toolbox/container defaults. Do not
+# remove those packages just because this role is disabled for a host.
+virtualization_podman_remove_packages_on_absent: false
+
+# libvirt/QEMU configuration
+virtualization_libvirt_state: absent  # present or absent
+
+# Packages required for libvirt/QEMU/KVM (role-specific)
+virtualization_libvirt_packages:
+  - libvirt
+  - libvirt-daemon
+  - libvirt-daemon-config-network
+  - libvirt-daemon-driver-qemu
+  - libvirt-daemon-kvm
+  - libvirt-daemon-log
+  - libvirt-daemon-lock
+  - libvirt-daemon-driver-interface
+  - libvirt-daemon-driver-network
+  - libvirt-daemon-driver-nodedev
+  - libvirt-daemon-driver-nwfilter
+  - libvirt-daemon-driver-secret
+  - libvirt-daemon-driver-storage
+  - qemu-kvm
+  - virt-install
+  - dnsmasq
+  - nmap-ncat
+  - dmidecode
+  - edk2-ovmf
+  - virtiofsd
+  - virt-manager
+  - python3-libvirt
+  - python3-lxml
+
+# Fedora owns the full modular libvirt socket policy via package presets. Manage
+# only the sockets needed for qemu:///system, storage pools, default NAT, and VM
+# runtime support.
+virtualization_libvirt_sockets:
+  - virtqemud.socket
+  - virtlogd.socket
+  - virtlockd.socket
+  - virtnetworkd.socket
+  - virtstoraged.socket
+
+# Users granted libvirt access. Override in inventory or play vars to customize.
+virtualization_libvirt_users:
+  - "{{ primary_user }}"
+
+# Fedora Workstation can already carry libvirt dependencies. Do not remove
+# packages or service policy unless explicitly requested for a cleanup host.
+virtualization_libvirt_remove_packages_on_absent: false
+
+# Storage pool configuration
+virtualization_libvirt_storage_pool_enabled: true
+virtualization_libvirt_storage_pool_path: /var/lib/libvirt/images
+virtualization_libvirt_uri: qemu:///system

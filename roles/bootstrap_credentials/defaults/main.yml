@@ -1,0 +1,16 @@
+---
+# Phase0 bootstrap credential rotation.
+#
+# The installer deliberately uses fixed dummy credentials so the OEMDRV seed does
+# not contain real LUKS or user secrets. This role replaces those dummy values
+# from a separate Ansible Vault file before the normal phase1/phase2 flow.
+
+bootstrap_credentials_state: present
+
+bootstrap_credentials_vault_file: "{{ playbook_dir }}/bootstrap.vault.yml"
+bootstrap_credentials_facts_file: "{{ storage_btrfs_facts_file | default('/fedora-workstation-storage.yml') }}"
+
+bootstrap_credentials_manage_luks: true
+bootstrap_credentials_manage_user_password: true
+
+bootstrap_credentials_install_luks_passphrase: fedora-bootstrap-luks-passphrase

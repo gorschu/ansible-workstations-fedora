@@ -1,0 +1,5 @@
+---
+# KDE extras not installed by the Fedora KDE Spin baseline. Kickstart installs
+# the desktop itself and the core KDE applications.
+kde_extra_packages:
+  - kate

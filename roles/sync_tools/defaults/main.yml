@@ -1,0 +1,9 @@
+---
+sync_tools_state: present
+
+# User-facing sync/mount daemons that chezmoi may activate as user services.
+sync_tools_packages:
+  - rclone
+  - syncthing
+
+sync_tools_extra_packages: []

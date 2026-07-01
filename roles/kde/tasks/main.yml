@@ -1,0 +1,9 @@
+---
+# KDE extras for the Fedora KDE desktop
+
+- name: Install KDE extras
+  when: kde_state == 'present'
+  become: true
+  ansible.builtin.dnf:
+    name: "{{ kde_extra_packages }}"
+    state: present

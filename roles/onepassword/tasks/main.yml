@@ -1,0 +1,85 @@
+---
+# 1Password installation for Fedora
+# https://support.1password.com/install-linux/#fedora-or-red-hat-enterprise-linux
+# https://www.1password.dev/cli/get-started
+
+- name: Install 1Password
+  when: onepassword_state == "present"
+  become: true
+  block:
+    - name: Import 1Password GPG key
+      ansible.builtin.rpm_key:
+        key: "{{ onepassword_rpm_key_url }}"
+        fingerprint: "{{ onepassword_gpg_fingerprint }}"
+        state: present
+
+    - name: Check whether 1Password repository already exists
+      ansible.builtin.stat:
+        path: /etc/yum.repos.d/1password.repo
+      register: onepassword_repo_file
+
+    - name: Add 1Password repository
+      ansible.builtin.copy:
+        dest: /etc/yum.repos.d/1password.repo
+        content: |
+          [1password]
+          baseurl = {{ onepassword_repo_baseurl }}
+          enabled = 1
+          gpgcheck = 1
+          gpgkey = {{ onepassword_rpm_key_url }}
+          name = 1Password Stable Channel
+          repo_gpgcheck = 1
+        owner: root
+        group: root
+        mode: "0644"
+      when: not onepassword_repo_file.stat.exists
+
+    - name: Install 1Password packages
+      ansible.builtin.dnf:
+        name: "{{ onepassword_packages }}"
+        state: present
+        update_cache: true
+
+    - name: Ensure 1Password configuration directory exists
+      ansible.builtin.file:
+        path: /etc/1password
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+      when: onepassword_custom_allowed_browsers | length > 0
+
+    - name: Configure custom allowed browsers for 1Password
+      ansible.builtin.copy:
+        dest: /etc/1password/custom_allowed_browsers
+        content: "{{ onepassword_custom_allowed_browsers | join('\n') }}\n"
+        owner: root
+        group: root
+        mode: "0644"
+      when: onepassword_custom_allowed_browsers | length > 0
+
+    - name: Remove custom allowed browsers when not configured
+      ansible.builtin.file:
+        path: /etc/1password/custom_allowed_browsers
+        state: absent
+      when: onepassword_custom_allowed_browsers | length == 0
+
+- name: Remove 1Password
+  when: onepassword_state == "absent"
+  become: true
+  block:
+    - name: Remove 1Password packages
+      ansible.builtin.dnf:
+        name: "{{ onepassword_packages }}"
+        state: absent
+      failed_when: false
+
+    - name: Remove custom allowed browsers file
+      ansible.builtin.file:
+        path: /etc/1password/custom_allowed_browsers
+        state: absent
+
+    - name: Remove 1Password repository
+      ansible.builtin.file:
+        path: /etc/yum.repos.d/1password.repo
+        state: absent

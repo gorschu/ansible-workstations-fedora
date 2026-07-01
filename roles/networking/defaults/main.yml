@@ -1,0 +1,45 @@
+---
+# Networking role defaults
+
+# Fedora package names. Keep GUI applets out of phase3; KDE/desktop-facing bits
+# belong in phase4.
+networking_packages:
+  - NetworkManager
+  - NetworkManager-wifi
+  - NetworkManager-tui
+  - fuse-sshfs
+  - wireguard-tools
+  - firewalld
+  - tcpdump
+  - mtr
+
+# Host to ping for network connectivity checks
+networking_connectivity_check_host: "1.1.1.1"
+
+# Interface name patterns for automatic detection
+# Wired ethernet interface pattern
+networking_wired_interface_pattern: '^en'
+
+# WiFi interface pattern
+networking_wifi_interface_pattern: '^wl'
+
+# WiFi profiles are read from vault_networking_wifi_networks. Disable this for
+# vault-free VM tests.
+networking_wifi_enabled: true
+
+# WireGuard Home VPN configuration
+# Set to true to fetch wg-home.conf from 1Password and configure the VPN
+networking_wireguard_home_enabled: true
+# Fixed unique listen port for wg-home. Must be set to avoid a NM bug where applying
+# the fwmark (ip4-auto-default-route) triggers a socket re-init that changes
+# the ephemeral port, causing handshake responses to land on a port nobody listens on.
+networking_wireguard_home_listen_port: 51820
+
+# Firewalld home zone - trusted LAN subnets and services
+networking_firewalld_home_sources: []
+networking_firewalld_home_services: []
+
+# Tailscale configuration
+networking_tailscale_state: present
+# Accept routes from other devices
+networking_tailscale_accept_routes: true

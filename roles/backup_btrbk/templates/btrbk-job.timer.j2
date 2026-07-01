@@ -1,0 +1,10 @@
+[Unit]
+Description=btrbk {{ job.description }} timer
+
+[Timer]
+OnCalendar={{ job.schedule }}
+Persistent=true
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target

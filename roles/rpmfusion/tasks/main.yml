@@ -1,0 +1,56 @@
+---
+# https://rpmfusion.org/Configuration
+
+- name: Build RPM Fusion release package list
+  ansible.builtin.set_fact:
+    rpmfusion_release_rpms: >-
+      {{ ([rpmfusion_free_release_rpm] if rpmfusion_free_enabled else [])
+         + ([rpmfusion_nonfree_release_rpm] if rpmfusion_nonfree_enabled else []) }}
+
+- name: Configure RPM Fusion repositories
+  when: rpmfusion_state == "present"
+  become: true
+  block:
+    - name: Install RPM Fusion release packages
+      when: rpmfusion_release_rpms | length > 0
+      ansible.builtin.dnf:
+        name: "{{ rpmfusion_release_rpms }}"
+        state: present
+        disable_gpg_check: true
+
+    - name: Check Fedora Cisco OpenH264 repository file
+      when: rpmfusion_openh264_enabled
+      ansible.builtin.stat:
+        path: /etc/yum.repos.d/fedora-cisco-openh264.repo
+      register: rpmfusion_openh264_repo_file
+
+    - name: Fail if Fedora Cisco OpenH264 repository file is missing
+      when:
+        - rpmfusion_openh264_enabled
+        - not rpmfusion_openh264_repo_file.stat.exists
+      ansible.builtin.fail:
+        msg: Fedora Cisco OpenH264 repository file is missing; install/repair fedora-repos before enabling it.
+
+    - name: Enable Fedora Cisco OpenH264 repository
+      when: rpmfusion_openh264_enabled
+      community.general.ini_file:
+        path: /etc/yum.repos.d/fedora-cisco-openh264.repo
+        section: fedora-cisco-openh264
+        option: enabled
+        value: "1"
+        no_extra_spaces: true
+        mode: "0644"
+
+    - name: Install RPM Fusion AppStream metadata packages
+      when: rpmfusion_appstream_data_enabled
+      ansible.builtin.dnf:
+        name: "{{ rpmfusion_appstream_data_packages }}"
+        state: present
+
+- name: Remove RPM Fusion packages
+  when: rpmfusion_state == "absent"
+  become: true
+  ansible.builtin.dnf:
+    name: "{{ ['rpmfusion-free-release', 'rpmfusion-nonfree-release'] + rpmfusion_appstream_data_packages }}"
+    state: absent
+  failed_when: false

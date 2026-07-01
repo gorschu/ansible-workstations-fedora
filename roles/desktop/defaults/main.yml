@@ -1,0 +1,24 @@
+---
+desktop_general_packages:
+  - freerdp
+  - solaar
+  - kitty
+
+desktop_support_applications:
+  - wl-clipboard
+
+desktop_vscode_state: present
+desktop_chrome_state: present
+desktop_vivaldi_state: present
+
+desktop_vscode_package: code
+desktop_vscode_repo_key: https://packages.microsoft.com/keys/microsoft.asc
+desktop_vscode_repo_baseurl: https://packages.microsoft.com/yumrepos/vscode
+
+desktop_chrome_package: google-chrome-stable
+desktop_chrome_repo_key: https://dl.google.com/linux/linux_signing_key.pub
+desktop_chrome_repo_baseurl: https://dl.google.com/linux/chrome/rpm/stable/x86_64
+
+desktop_vivaldi_package: vivaldi-stable
+desktop_vivaldi_repo_key: https://repo.vivaldi.com/archive/linux_signing_key.pub
+desktop_vivaldi_repo_baseurl: https://repo.vivaldi.com/archive/rpm/x86_64

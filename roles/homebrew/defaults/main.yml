@@ -1,0 +1,18 @@
+---
+# Homebrew is installed into the canonical Linux prefix so bottles work. The
+# prefix mount itself is owned by storage_btrfs.
+homebrew_state: present
+homebrew_prefix: /home/linuxbrew/.linuxbrew
+homebrew_mountpoint: /home/linuxbrew
+homebrew_brew_bin: "{{ homebrew_prefix }}/bin/brew"
+homebrew_repository: https://github.com/Homebrew/brew
+homebrew_repository_version: master
+
+homebrew_development_group: "@development-tools"
+homebrew_dependency_packages:
+  - curl
+  - file
+  - git
+  - procps-ng
+
+homebrew_run_doctor: false

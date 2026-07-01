@@ -1,0 +1,33 @@
+---
+- name: Install common virtualization packages
+  become: true
+  ansible.builtin.dnf:
+    name: "{{ virtualization_common_packages }}"
+    state: present
+  when: >
+    virtualization_incus_state == 'present' or
+    virtualization_libvirt_state == 'present'
+  tags:
+    - incus
+    - libvirt
+
+- name: Include Incus tasks
+  ansible.builtin.include_tasks:
+    file: incus.yml
+    apply:
+      tags: [virtualization, containers, phase3, incus]
+  tags: incus
+
+- name: Include Podman tasks
+  ansible.builtin.include_tasks:
+    file: podman.yml
+    apply:
+      tags: [virtualization, containers, phase3, podman]
+  tags: podman
+
+- name: Include libvirt tasks
+  ansible.builtin.include_tasks:
+    file: libvirt.yml
+    apply:
+      tags: [virtualization, containers, phase3, libvirt]
+  tags: libvirt

@@ -1,0 +1,22 @@
+---
+all:
+  children:
+    workstations:
+      vars:
+        ansible_ssh_common_args: >-
+          -F /dev/null
+          -o IdentitiesOnly=yes
+          -o IdentityFile=/home/gorschu/.ssh/keys.public/general.pub
+      hosts:
+        apollo:
+          ansible_host: apollo.fritz.box
+          ansible_user: gorschu
+          ansible_connection: ssh
+        hephaestus:
+          ansible_host: hephaestus.fritz.box
+          ansible_user: gorschu
+          ansible_connection: ssh
+        artemis:
+          ansible_host: artemis.fritz.box
+          ansible_user: gorschu
+          ansible_connection: ssh

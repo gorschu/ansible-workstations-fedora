@@ -1,0 +1,10 @@
+---
+onepassword_state: present
+onepassword_packages:
+  - 1password
+  - 1password-cli
+onepassword_rpm_key_url: https://downloads.1password.com/linux/keys/1password.asc
+onepassword_gpg_fingerprint: "3FEF 9748 469A DBE1 5DA7 CA80 AC2D 6274 2012 EA22"
+onepassword_repo_baseurl: https://downloads.1password.com/linux/rpm/stable/$basearch
+onepassword_custom_allowed_browsers:
+  - vivaldi-bin

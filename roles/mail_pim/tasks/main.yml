@@ -1,0 +1,24 @@
+---
+- name: Validate mail and PIM configuration
+  ansible.builtin.assert:
+    that:
+      - mail_pim_state in ["present", "absent"]
+    quiet: true
+
+- name: Set mail and PIM package list
+  ansible.builtin.set_fact:
+    mail_pim_packages: >-
+      {{
+        ([] if not mail_pim_mail_enabled else mail_pim_mail_packages)
+        + ([] if not mail_pim_pim_enabled else mail_pim_pim_packages)
+        + mail_pim_extra_packages
+      }}
+
+- name: Install Fedora-native mail and PIM tools
+  become: true
+  ansible.builtin.dnf:
+    name: "{{ mail_pim_packages }}"
+    state: present
+  when:
+    - mail_pim_state == "present"
+    - mail_pim_packages | length > 0

@@ -1,0 +1,332 @@
+# Fedora KDE workstation Kickstart for netinst/standard installer media.
+#
+# WARNING: destructive. This recreates EFI, /boot, and root. It preserves partition 9 when present; otherwise it creates partition 9 as LUKS+Btrfs.
+# Render with ./install/render-kickstart.sh before use.
+
+graphical
+eula --agreed
+firstboot --disable
+reboot --eject
+
+lang en_US.UTF-8
+keyboard --vckeymap=de --xlayouts='de'
+timezone Europe/Berlin --utc
+
+network --bootproto=dhcp --device=link --hostname=@@HOSTNAME@@ --activate
+firewall --enabled
+selinux --enforcing
+
+url --metalink=https://mirrors.fedoraproject.org/metalink?repo=fedora-$releasever&arch=$basearch
+repo --name=updates
+
+rootpw --lock
+group --name=@@USER@@ --gid=1000
+user --name=@@USER@@ --uid=1000 --gid=1000 --groups=wheel --password=@@USER_PASSWORD@@ --plaintext --gecos="Gordon Schulz"
+@@SSHKEY_LINE@@
+services --enabled=NetworkManager,sshd
+
+%pre --interpreter=/bin/bash --log=/tmp/fedora-workstation-storage-pre.log
+set -euo pipefail
+
+ROOT_SIZE_MIB=153600
+DATA_LUKS_NAME=fedora-data-setup
+DATA_PART_NUM=9
+DATA_SUBVOLUME=data
+INSTALL_DISK="@@INSTALL_DISK@@"
+
+disk_is_usable() {
+  local candidate="$1"
+  local resolved
+  local name
+  local type
+  local removable
+  local readonly
+
+  [[ -b "$candidate" ]] || return 1
+
+  resolved="$(readlink -f "$candidate")"
+  [[ -b "$resolved" ]] || return 1
+
+  name="$(basename "$resolved")"
+  case "$name" in
+    loop*|zram*|dm-*|sr*)
+      return 1
+      ;;
+  esac
+
+  read -r type removable readonly < <(lsblk -dn -o TYPE,RM,RO "$resolved" 2>/dev/null || true)
+  [[ "$type" == "disk" && "$removable" == "0" && "$readonly" == "0" ]]
+}
+
+part_path() {
+  local disk="$1"
+  local num="$2"
+
+  if [[ "$disk" == /dev/nvme* || "$disk" == /dev/mmcblk* ]]; then
+    echo "${disk}p${num}"
+  else
+    echo "${disk}${num}"
+  fi
+}
+
+partition_exists() {
+  local disk="$1"
+  local num="$2"
+
+  sgdisk -p "$disk" 2>/dev/null | awk '{print $1}' | grep -qx "$num"
+}
+
+close_data_mapper() {
+  if cryptsetup status "$DATA_LUKS_NAME" >/dev/null 2>&1; then
+    cryptsetup close "$DATA_LUKS_NAME"
+  fi
+}
+
+if [[ "$INSTALL_DISK" != /dev/disk/by-id/* ]]; then
+  echo "Configured install disk must be an explicit /dev/disk/by-id path: $INSTALL_DISK" >&2
+  exit 1
+fi
+
+if ! disk_is_usable "$INSTALL_DISK"; then
+  echo "Configured install disk is not a writable non-removable disk: $INSTALL_DISK" >&2
+  exit 1
+fi
+
+disk="$(readlink -f "$INSTALL_DISK")"
+if [[ -z "${disk:-}" || ! -b "$disk" ]]; then
+  echo "No suitable install disk found" >&2
+  exit 1
+fi
+
+disk_base="$(basename "$disk")"
+esp_part="$(part_path "$disk" 1)"
+boot_part="$(part_path "$disk" 2)"
+root_part="$(part_path "$disk" 3)"
+data_part="$(part_path "$disk" "$DATA_PART_NUM")"
+
+echo "Configured install disk: $INSTALL_DISK"
+echo "Selected install disk: $disk"
+if partition_exists "$disk" "$DATA_PART_NUM"; then
+  DATA_PRESERVED=true
+  echo "Existing data partition found; preserving without opening it: $data_part"
+
+  if [[ ! -b "$data_part" ]]; then
+    echo "Expected data partition block device is missing: $data_part" >&2
+    exit 1
+  fi
+
+  if [[ "$(blkid -s TYPE -o value "$data_part" 2>/dev/null || true)" != "crypto_LUKS" ]]; then
+    echo "Preserved data partition is not LUKS: $data_part" >&2
+    exit 1
+  fi
+
+  data_luks_uuid="$(blkid -s UUID -o value "$data_part")"
+  if [[ -z "$data_luks_uuid" ]]; then
+    echo "Could not determine LUKS UUID for preserved data partition: $data_part" >&2
+    exit 1
+  fi
+  data_btrfs_uuid=""
+
+  echo "Deleting non-data partitions and creating fresh Fedora OS partitions"
+  while read -r part_num; do
+    [[ -n "$part_num" ]] || continue
+    sgdisk --delete="$part_num" "$disk"
+  done < <(sgdisk -p "$disk" | awk -v keep="$DATA_PART_NUM" '/^ *[0-9]+/ { if ($1 != keep) print $1 }')
+
+  sgdisk --typecode=${DATA_PART_NUM}:8309 --change-name=${DATA_PART_NUM}:cryptdata "$disk"
+else
+  DATA_PRESERVED=false
+  echo "No data partition ${DATA_PART_NUM} found; creating fresh disk layout including part9"
+  sgdisk --zap-all "$disk"
+  sgdisk --clear "$disk"
+fi
+
+sgdisk --new=1:0:+1G --typecode=1:ef00 --change-name=1:EFI "$disk"
+sgdisk --new=2:0:+1G --typecode=2:8300 --change-name=2:boot "$disk"
+sgdisk --new=3:0:+${ROOT_SIZE_MIB}M --typecode=3:8309 --change-name=3:cryptroot "$disk"
+if [[ "$DATA_PRESERVED" != true ]]; then
+  sgdisk --new=${DATA_PART_NUM}:0:0 --typecode=${DATA_PART_NUM}:8309 --change-name=${DATA_PART_NUM}:cryptdata "$disk"
+fi
+# Do not sort GPT entries here: sgdisk --sort renumbers partition 9 to 4 on fresh disks.
+# Keeping partition 9 stable is part of the storage contract.
+partprobe "$disk"
+udevadm settle
+sleep 2
+
+for part in "$esp_part" "$boot_part" "$root_part" "$data_part"; do
+  if [[ ! -b "$part" ]]; then
+    echo "Expected partition missing after partitioning: $part" >&2
+    exit 1
+  fi
+done
+
+if [[ "$DATA_PRESERVED" == true ]]; then
+  if [[ "$(blkid -s UUID -o value "$data_part" 2>/dev/null || true)" != "$data_luks_uuid" ]]; then
+    echo "Preserved data partition UUID changed unexpectedly: $data_part" >&2
+    exit 1
+  fi
+else
+  echo "Preparing new encrypted Btrfs data partition: $data_part"
+  close_data_mapper
+  printf '%s' '@@LUKS_PASSPHRASE@@' | cryptsetup luksFormat --type luks2 --batch-mode --key-file - "$data_part"
+  data_luks_uuid="$(blkid -s UUID -o value "$data_part")"
+  if [[ -z "$data_luks_uuid" ]]; then
+    echo "Could not determine LUKS UUID for data partition: $data_part" >&2
+    exit 1
+  fi
+
+  printf '%s' '@@LUKS_PASSPHRASE@@' | cryptsetup open --key-file - "$data_part" "$DATA_LUKS_NAME"
+  mkfs.btrfs -L fedora-data "/dev/mapper/${DATA_LUKS_NAME}"
+  data_btrfs_uuid="$(blkid -s UUID -o value "/dev/mapper/${DATA_LUKS_NAME}")"
+  if [[ -z "$data_btrfs_uuid" ]]; then
+    echo "Could not determine Btrfs UUID for data mapper: /dev/mapper/${DATA_LUKS_NAME}" >&2
+    exit 1
+  fi
+
+  mkdir -p /mnt/fedora-data-setup
+  mount "/dev/mapper/${DATA_LUKS_NAME}" /mnt/fedora-data-setup
+  btrfs subvolume create "/mnt/fedora-data-setup/${DATA_SUBVOLUME}"
+  umount /mnt/fedora-data-setup
+  rmdir /mnt/fedora-data-setup
+  close_data_mapper
+fi
+
+cat > /tmp/fedora-workstation-storage.env <<EOF
+INSTALL_DISK_BY_ID=${INSTALL_DISK}
+INSTALL_DISK_RESOLVED=${disk}
+ROOT_PART=${root_part}
+DATA_PART=${data_part}
+DATA_LUKS_UUID=${data_luks_uuid}
+DATA_BTRFS_UUID=${data_btrfs_uuid}
+DATA_SETUP_MAPPER=/dev/mapper/${DATA_LUKS_NAME}
+DATA_SYSTEMD_MAPPER=/dev/mapper/luks-${data_luks_uuid}
+DATA_PRESERVED=${DATA_PRESERVED}
+DATA_SUBVOLUME=${DATA_SUBVOLUME}
+ROOT_SUBVOLUME=root
+HOME_SUBVOLUME=home
+EOF
+
+cat > /tmp/fedora-workstation-storage.ks <<EOF
+ignoredisk --only-use=${disk_base}
+clearpart --none
+bootloader --location=mbr --boot-drive=${disk_base} --append="rhgb quiet"
+
+part /boot/efi --fstype=efi --onpart=${esp_part} --fsoptions="umask=0077,shortname=winnt"
+part /boot --fstype=ext4 --label=BOOT --onpart=${boot_part}
+
+part btrfs.ROOT --fstype=btrfs --onpart=${root_part} --encrypted --passphrase=@@LUKS_PASSPHRASE@@ --luks-version=luks2
+
+btrfs none --label=fedora-root btrfs.ROOT
+btrfs / --subvol --name=root LABEL=fedora-root
+btrfs /home --subvol --name=home LABEL=fedora-root
+EOF
+%end
+
+%include /tmp/fedora-workstation-storage.ks
+
+%packages
+@^kde-desktop-environment
+openssh-server
+sudo
+python3
+NetworkManager
+btrfs-progs
+cryptsetup
+gdisk
+%end
+
+%post --nochroot --interpreter=/bin/bash --log=/tmp/fedora-workstation-post-nochroot.log
+set -euo pipefail
+
+if [[ ! -f /tmp/fedora-workstation-storage.env ]]; then
+  echo "Missing data partition metadata from %pre" >&2
+  exit 1
+fi
+. /tmp/fedora-workstation-storage.env
+
+target_root=/mnt/sysimage
+if [[ ! -d "${target_root}/etc" && -d /mnt/sysroot/etc ]]; then
+  target_root=/mnt/sysroot
+fi
+if [[ ! -d "${target_root}/etc" ]]; then
+  echo "Could not find installed system root under /mnt/sysimage or /mnt/sysroot" >&2
+  exit 1
+fi
+
+yaml_string() {
+  printf '"%s"' "$(printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g')"
+}
+
+yaml_nullable_string() {
+  if [[ -n "${1:-}" ]]; then
+    yaml_string "$1"
+  else
+    printf 'null'
+  fi
+}
+
+root_luks_uuid="$(blkid -s UUID -o value "$ROOT_PART" 2>/dev/null || true)"
+root_mapper="$(findmnt -n -o SOURCE --target "$target_root" 2>/dev/null | sed 's/\[.*\]$//' || true)"
+if [[ "$root_mapper" != /dev/mapper/* ]]; then
+  root_mapper="$(lsblk -nrpo NAME,TYPE "$ROOT_PART" 2>/dev/null | awk '$2 == "crypt" { print $1; exit }' || true)"
+fi
+root_btrfs_uuid=""
+root_btrfs_label=""
+if [[ -n "$root_mapper" && -b "$root_mapper" ]]; then
+  root_btrfs_uuid="$(blkid -s UUID -o value "$root_mapper" 2>/dev/null || true)"
+  root_btrfs_label="$(blkid -s LABEL -o value "$root_mapper" 2>/dev/null || true)"
+fi
+
+facts_file="${target_root}/fedora-workstation-storage.yml"
+if [[ -e "$facts_file" ]]; then
+  chattr -i "$facts_file" 2>/dev/null || true
+fi
+
+cat > "$facts_file" <<EOF
+version: 1
+install:
+  hostname: $(yaml_string "@@HOSTNAME@@")
+  disk_by_id: $(yaml_string "$INSTALL_DISK_BY_ID")
+  disk_resolved: $(yaml_string "$INSTALL_DISK_RESOLVED")
+  data_preserved: ${DATA_PRESERVED}
+partitions:
+  root: $(yaml_string "$ROOT_PART")
+  data: $(yaml_string "$DATA_PART")
+luks:
+  root:
+    uuid: $(yaml_nullable_string "$root_luks_uuid")
+    mapper: $(yaml_nullable_string "$root_mapper")
+  data:
+    uuid: $(yaml_string "$DATA_LUKS_UUID")
+    mapper: null
+    systemd_mapper: $(yaml_string "$DATA_SYSTEMD_MAPPER")
+    setup_mapper: $(yaml_string "$DATA_SETUP_MAPPER")
+filesystems:
+  root:
+    uuid: $(yaml_nullable_string "$root_btrfs_uuid")
+    label: $(yaml_nullable_string "$root_btrfs_label")
+  data:
+    uuid: $(yaml_nullable_string "$DATA_BTRFS_UUID")
+    label: "fedora-data"
+subvolumes:
+  root: $(yaml_string "$ROOT_SUBVOLUME")
+  home: $(yaml_string "$HOME_SUBVOLUME")
+  data: $(yaml_string "$DATA_SUBVOLUME")
+EOF
+
+chown root:root "$facts_file"
+chmod 0400 "$facts_file"
+chattr +i "$facts_file"
+
+install -d -m 0700 "${target_root}/root"
+cp /tmp/fedora-workstation-storage-pre.log "${target_root}/root/" || true
+cp /tmp/fedora-workstation-storage.ks "${target_root}/root/" || true
+cp /tmp/fedora-workstation-storage.env "${target_root}/root/" || true
+cp /tmp/fedora-workstation-post-nochroot.log "${target_root}/root/" || true
+%end
+
+%post --interpreter=/bin/bash --log=/root/fedora-workstation-post.log
+set -euo pipefail
+
+install -d -o @@USER@@ -g @@USER@@ -m 0700 /home/@@USER@@/data
+%end

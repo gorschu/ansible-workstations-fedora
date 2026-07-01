@@ -1,0 +1,63 @@
+---
+# Btrfs data storage role defaults
+
+# state: present or absent
+storage_btrfs_state: present
+
+# Fedora installer storage contract. The kickstart writes this after creating or
+# validating root/data LUKS containers and Btrfs subvolumes.
+storage_btrfs_facts_file: /fedora-workstation-storage.yml
+
+# Root filesystem btrfs device (auto-discovered from installer facts)
+# Override in host_vars if needed.
+storage_btrfs_root_device: auto
+
+# Root filesystem btrfs root mount
+storage_btrfs_root_mountpoint: /mnt/btrfs_root
+storage_btrfs_root_mount_options: "subvolid=5,relatime"
+
+# Encrypted data mapper device prepared by installer/storage_btrfs.
+# "auto" uses luks.data.systemd_mapper from storage_btrfs_facts_file.
+storage_btrfs_device: auto
+
+# Data LUKS boot unlock. Fedora's root crypttab already uses discard; keep data
+# aligned so fstrim.timer can pass trims through LUKS to part9.
+storage_btrfs_manage_crypttab: true
+storage_btrfs_crypttab_options: discard
+
+# primary data mount
+storage_btrfs_subvolume: data
+storage_btrfs_mountpoint: "{{ primary_user_home }}/data"
+storage_btrfs_mount_options: >-
+  {{
+    [
+      'subvol=' ~ (storage_btrfs_data_subvolume_final | default(storage_btrfs_subvolume)),
+      'compress=zstd:3',
+      'relatime',
+    ] | join(',')
+  }}
+
+# top-level mount used by snapshot tooling (subvolid=5)
+storage_btrfs_top_mountpoint: /mnt/btrfs_data
+storage_btrfs_top_mount_options: "subvolid=5,relatime"
+
+# scratch subvolume: cache / regenerable data, intentionally NOT in btrbk's
+# backup jobs. Lives on the root btrfs alongside root/home.
+storage_btrfs_scratch_subvolume: scratch
+storage_btrfs_scratch_mountpoint: "{{ primary_user_home }}/.scratch"
+storage_btrfs_scratch_mount_options: "subvol={{ storage_btrfs_scratch_subvolume }},compress=zstd:3,relatime"
+
+# Homebrew subvolume: preserved across reinstalls with data part9, but separate
+# from the primary data subvolume so normal data snapshots do not include it.
+storage_btrfs_homebrew_subvolume: homebrew
+storage_btrfs_homebrew_mountpoint: /home/linuxbrew
+storage_btrfs_homebrew_mount_options: "subvol={{ storage_btrfs_homebrew_subvolume }},compress=zstd:3,relatime"
+
+# Minimal bootstrap directories inside ~/data.
+# Detailed structure and symlinks are owned by chezmoi user-tmpfiles.d.
+storage_btrfs_data_directories:
+  - {path: general, mode: "0700"}
+  - {path: general/flatpak, mode: "0700"}
+  - {path: projects, mode: "0700"}
+  - {path: media, mode: "0700"}
+  - {path: mail, mode: "0700"}

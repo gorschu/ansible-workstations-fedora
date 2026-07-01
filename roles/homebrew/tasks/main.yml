@@ -1,0 +1,117 @@
+---
+- name: Install Homebrew
+  when: homebrew_state == 'present'
+  become: true
+  block:
+    - name: Install Homebrew development tools group
+      ansible.builtin.dnf:
+        name: "{{ homebrew_development_group }}"
+        state: present
+
+    - name: Install Homebrew host dependencies
+      ansible.builtin.dnf:
+        name: "{{ homebrew_dependency_packages }}"
+        state: present
+
+    - name: Refresh mount facts
+      ansible.builtin.setup:
+        gather_subset:
+          - "!all"
+          - "!min"
+          - hardware
+
+    - name: Select Homebrew mount fact
+      ansible.builtin.set_fact:
+        homebrew_mounts: >-
+          {{ ansible_facts.mounts
+             | selectattr('mount', 'equalto', homebrew_mountpoint)
+             | list }}
+
+    - name: Fail if Homebrew mount is missing
+      ansible.builtin.fail:
+        msg: >-
+          {{ homebrew_mountpoint }} is not mounted. Run phase2 storage first so
+          Homebrew is installed into the preserved data subvolume, not the root
+          filesystem.
+      when: homebrew_mounts | length == 0
+
+    - name: Fail if Homebrew mount is not Btrfs
+      ansible.builtin.fail:
+        msg: >-
+          {{ homebrew_mountpoint }} is mounted as {{ homebrew_mounts[0].fstype }},
+          expected btrfs.
+      when:
+        - homebrew_mounts | length > 0
+        - homebrew_mounts[0].fstype != 'btrfs'
+
+    - name: Ensure mounted Homebrew root is user-writable
+      ansible.builtin.file:
+        path: "{{ homebrew_mountpoint }}"
+        state: directory
+        owner: "{{ primary_user }}"
+        group: "{{ primary_user }}"
+        mode: "0755"
+
+    - name: Check Homebrew binary
+      ansible.builtin.stat:
+        path: "{{ homebrew_brew_bin }}"
+      register: homebrew_brew
+
+    - name: Check Homebrew prefix
+      ansible.builtin.stat:
+        path: "{{ homebrew_prefix }}"
+      register: homebrew_prefix_stat
+
+    - name: Fail on partial Homebrew prefix
+      ansible.builtin.fail:
+        msg: >-
+          {{ homebrew_prefix }} exists, but {{ homebrew_brew_bin }} is not
+          executable. Fix or remove the partial prefix manually before rerunning
+          Ansible.
+      when:
+        - homebrew_prefix_stat.stat.exists
+        - not (homebrew_brew.stat.exists and homebrew_brew.stat.executable)
+
+    - name: Run Homebrew commands as primary user
+      become: true
+      become_user: "{{ primary_user }}"
+      environment:
+        HOME: "{{ primary_user_home }}"
+        HOMEBREW_FORCE_VENDOR_RUBY: "1"
+      block:
+        - name: Clone Homebrew
+          ansible.builtin.git:
+            repo: "{{ homebrew_repository }}"
+            dest: "{{ homebrew_prefix }}"
+            version: "{{ homebrew_repository_version }}"
+            depth: 1
+            update: false
+          register: homebrew_clone
+          notify: Homebrew.update_new_install
+          when: not homebrew_brew.stat.exists
+
+        - name: Flush Homebrew install handlers
+          ansible.builtin.meta: flush_handlers
+
+        - name: Verify Homebrew command
+          ansible.builtin.command:
+            argv:
+              - "{{ homebrew_brew_bin }}"
+              - --version
+          changed_when: false
+
+        - name: Run Homebrew doctor
+          ansible.builtin.command:
+            argv:
+              - "{{ homebrew_brew_bin }}"
+              - doctor
+          changed_when: false
+          failed_when: false
+          when: homebrew_run_doctor | bool
+
+- name: Leave Homebrew installed when disabled
+  when: homebrew_state == 'absent'
+  ansible.builtin.debug:
+    msg: >-
+      homebrew_state is absent; this role does not remove
+      {{ homebrew_prefix }} because it is preserved user data.

@@ -1,0 +1,43 @@
+---
+# Vivaldi
+
+- name: Configure Vivaldi
+  become: true
+  block:
+    - name: Add Vivaldi GPG key
+      ansible.builtin.rpm_key:
+        state: "{{ 'present' if desktop_vivaldi_state == 'present' else 'absent' }}"
+        key: "{{ desktop_vivaldi_repo_key }}"
+
+    - name: Check whether Vivaldi repository already exists
+      ansible.builtin.stat:
+        path: /etc/yum.repos.d/vivaldi.repo
+      register: desktop_vivaldi_repo_file
+
+    - name: Configure Vivaldi repository
+      ansible.builtin.copy:
+        dest: /etc/yum.repos.d/vivaldi.repo
+        content: |
+          [vivaldi]
+          baseurl = {{ desktop_vivaldi_repo_baseurl }}
+          enabled = 1
+          gpgcheck = 1
+          gpgkey = {{ desktop_vivaldi_repo_key }}
+          name = Vivaldi
+        owner: root
+        group: root
+        mode: "0644"
+      when:
+        - desktop_vivaldi_state == 'present'
+        - not desktop_vivaldi_repo_file.stat.exists
+
+    - name: Remove Vivaldi repository
+      ansible.builtin.file:
+        path: /etc/yum.repos.d/vivaldi.repo
+        state: absent
+      when: desktop_vivaldi_state == 'absent'
+
+    - name: Install Vivaldi
+      ansible.builtin.dnf:
+        name: "{{ desktop_vivaldi_package }}"
+        state: "{{ desktop_vivaldi_state }}"

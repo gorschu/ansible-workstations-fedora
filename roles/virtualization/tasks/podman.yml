@@ -1,0 +1,72 @@
+---
+- name: Configure Podman
+  become: true
+  when: virtualization_podman_state == 'present'
+  block:
+    - name: Install core Podman packages
+      ansible.builtin.dnf:
+        name: "{{ virtualization_podman_packages }}"
+        state: present
+
+    - name: Install optional Podman packages
+      ansible.builtin.dnf:
+        name: "{{ virtualization_podman_optional_packages }}"
+        state: present
+      when: virtualization_podman_install_optional
+
+    - name: Ensure Podman registry configuration directory exists
+      ansible.builtin.file:
+        path: /etc/containers/registries.conf.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Deploy Podman registry configuration
+      ansible.builtin.template:
+        src: 10-unqualified-search-registries.conf.j2
+        dest: /etc/containers/registries.conf.d/10-unqualified-search-registries.conf
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Enable and start Podman socket
+      ansible.builtin.systemd_service:
+        name: podman.socket
+        enabled: true
+        state: started
+
+    - name: Enable and start podman-restart service
+      ansible.builtin.systemd_service:
+        name: podman-restart.service
+        enabled: true
+      when: virtualization_podman_enable_restart_service
+
+- name: Remove Podman
+  become: true
+  when: virtualization_podman_state == 'absent'
+  block:
+    - name: Stop and disable Podman socket
+      ansible.builtin.systemd_service:
+        name: podman.socket
+        enabled: false
+        state: stopped
+      failed_when: false
+
+    - name: Stop and disable podman-restart service
+      ansible.builtin.systemd_service:
+        name: podman-restart.service
+        enabled: false
+        state: stopped
+      failed_when: false
+
+    - name: Remove Podman registry configuration
+      ansible.builtin.file:
+        path: /etc/containers/registries.conf.d/10-unqualified-search-registries.conf
+        state: absent
+
+    - name: Remove Podman packages
+      when: virtualization_podman_remove_packages_on_absent | bool
+      ansible.builtin.dnf:
+        name: "{{ virtualization_podman_packages + virtualization_podman_optional_packages }}"
+        state: absent

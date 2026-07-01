@@ -1,0 +1,8 @@
+---
+notebook_state: auto
+notebook_packages:
+  - brightnessctl
+
+notebook_batenergy_state: present
+notebook_batenergy_source: batenergy.sh
+notebook_batenergy_dest: /usr/lib/systemd/system-sleep/99-batenergy.sh

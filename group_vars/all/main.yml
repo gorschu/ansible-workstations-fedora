@@ -1,0 +1,38 @@
+---
+# Global variables for all hosts
+# Role-specific settings (including state toggles) are in role defaults
+# Override per-host in host_vars/
+
+# Use system Python to avoid mise shim issues
+ansible_python_interpreter: /usr/bin/python3
+
+timezone: Europe/Berlin
+
+# Desktop environment state (set per-host in host_vars/)
+kde_state: absent
+
+# Firewalld home zone - trusted LAN subnets and services
+networking_firewalld_home_sources:
+  - "172.29.50.0/23"
+  - "fd6a:7581:f7b::/64"
+networking_firewalld_home_services:
+  - kdeconnect
+  - syncthing
+
+
+# Printers
+printing_printers:
+  - name: wf-4830
+    uri: ipp://172.29.50.58/ipp/print
+    description: Epson WorkForce Pro WF-4830
+    model: everywhere
+    default: true
+
+# Primary user
+primary_user: gorschu
+primary_user_comment: "Gordon Schulz"
+primary_user_home: /home/{{ primary_user }}
+primary_user_uid: 1000
+primary_user_groups:
+  - wheel
+  - video

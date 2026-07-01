@@ -1,0 +1,15 @@
+---
+- name: Validate sync tools configuration
+  ansible.builtin.assert:
+    that:
+      - sync_tools_state in ["present", "absent"]
+    quiet: true
+
+- name: Install Fedora-native sync tools
+  become: true
+  ansible.builtin.dnf:
+    name: "{{ sync_tools_packages + sync_tools_extra_packages }}"
+    state: present
+  when:
+    - sync_tools_state == "present"
+    - (sync_tools_packages + sync_tools_extra_packages) | length > 0

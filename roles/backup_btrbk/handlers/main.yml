@@ -1,0 +1,7 @@
+---
+# btrbk handlers
+
+- name: Backup_btrbk.reload_systemd
+  become: true
+  ansible.builtin.systemd_service:
+    daemon_reload: true

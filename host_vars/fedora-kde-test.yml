@@ -1,0 +1,30 @@
+---
+# VM target for Fedora phase1 bring-up only.
+# Do not use a full playbook run until desktop/network/virtualization roles are
+# ported away from Arch package assumptions.
+
+# desktop roles are not part of phase1
+kde_state: present
+
+# vault/external integrations disabled for the VM baseline
+backup_resticprofile_state: absent
+networking_tailscale_state: absent
+networking_wireguard_home_enabled: false
+networking_wifi_enabled: false
+onepassword_state: absent
+sync_tools_state: absent
+cli_tools_state: absent
+mail_pim_state: absent
+dev_tools_state: absent
+cloud_tools_state: absent
+
+# avoid touching real-world peripherals/services from copied group vars
+printing_printers: []
+virtualization_incus_state: absent
+virtualization_libvirt_state: absent
+virtualization_podman_state: absent
+
+# phase1 targets
+storage_btrfs_state: present
+backup_btrbk_state: present
+base_extra_packages: []

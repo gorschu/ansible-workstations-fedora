@@ -1,0 +1,45 @@
+---
+# Multimedia codecs and hardware acceleration
+
+- name: Install multimedia codecs and hardware acceleration
+  become: true
+  vars:
+    multimedia_dnf_change_regex: >-
+      (?m)^(Installing|Upgrading|Removing|Downgrading)( group/module packages| dependencies| weak dependencies)?:
+  block:
+    - name: Upgrade Fedora packages before multimedia swaps
+      ansible.builtin.command:
+        cmd: dnf -y upgrade --refresh
+      register: multimedia_system_upgrade
+      changed_when: >-
+        (multimedia_system_upgrade.stdout | regex_search(multimedia_dnf_change_regex)) is not none
+
+    - name: Install multimedia group
+      ansible.builtin.command:
+        cmd: dnf -y group install multimedia
+      register: multimedia_group_install
+      changed_when: "'Nothing to do' not in multimedia_group_install.stdout"
+
+    - name: Upgrade multimedia group
+      ansible.builtin.command:
+        cmd: dnf -y group upgrade multimedia
+      register: multimedia_group_upgrade
+      changed_when: >-
+        (multimedia_group_upgrade.stdout | regex_search(multimedia_dnf_change_regex)) is not none
+
+    - name: Install multimedia packages
+      ansible.builtin.dnf:
+        name: "{{ multimedia_packages }}"
+        state: present
+
+    - name: Install multimedia codec packages
+      ansible.builtin.dnf:
+        name: "{{ multimedia_codec_packages }}"
+        state: present
+        allowerasing: true
+
+    - name: Install hardware codec acceleration packages
+      ansible.builtin.dnf:
+        name: "{{ multimedia_hw_accel_packages }}"
+        state: present
+        allowerasing: true

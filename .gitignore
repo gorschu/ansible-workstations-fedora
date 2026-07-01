@@ -1,0 +1,5 @@
+*.iso
+__pycache__
+install/build/
+*.pyc
+.claude/
