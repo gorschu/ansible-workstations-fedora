@@ -35,6 +35,7 @@ virtualization_podman_packages:
 
 # Optional Podman packages
 virtualization_podman_optional_packages:
+  - distrobox
   - podman-compose
 
 # Whether to install optional packages

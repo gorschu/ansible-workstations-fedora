@@ -1,8 +1,6 @@
 ---
 cloud_tools_state: present
 
-cloud_tools_packages:
-  - gh
-  - helm
+cloud_tools_packages: []
 
 cloud_tools_extra_packages: []
