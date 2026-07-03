@@ -3,9 +3,10 @@
 This directory contains the bare-metal Fedora KDE Kickstart installer flow for
 these workstations.
 
-The install is destructive for EFI, `/boot`, and root on the configured target
-disk. Partition 9 is special: if it already exists, it must be LUKS and is
-preserved; if it is missing, the installer creates it as encrypted Btrfs data.
+The install is destructive for EFI, `/boot`, root, and swap on the configured
+target disk. Partition 9 is special: if it already exists, it must be LUKS and
+is preserved; if it is missing, the installer creates it as encrypted Btrfs
+data.
 
 The `OEMDRV` seed does not contain real secrets. Kickstart uses fixed dummy
 bootstrap values and Ansible phase0 replaces them immediately after first boot.
@@ -125,8 +126,8 @@ inst.ks=cdrom:LABEL=OEMDRV:/ks.cfg
 ```
 
 The installer writes `/fedora-workstation-storage.yml` into the installed
-system. Phase0 and later storage roles use that file to discover the root/data
-LUKS devices and Btrfs UUIDs.
+system. Phase0 and later roles use that file to discover the root, swap, and
+data LUKS devices and Btrfs UUIDs.
 
 ## 5. Run Phase0 Immediately
 
@@ -168,8 +169,9 @@ Then run phase0 from the control machine:
 ./run-phase0.sh -i inventory/ssh.yml --limit hephaestus
 ```
 
-Phase0 adds the real LUKS passphrase to root and data, verifies it, removes the
-dummy installer LUKS passphrase, and sets the real user password hash.
+Phase0 adds the real LUKS passphrase to root, swap, and data, verifies it,
+removes the dummy installer LUKS passphrase, and sets the real user password
+hash.
 
 Reboot after phase0. The dummy LUKS passphrase should no longer work.
 
@@ -192,12 +194,17 @@ Phase1 prints a reboot reminder after storage bootstrap. Reboot, then continue:
 When running locally on the installed machine, omit `-i inventory/ssh.yml`; the
 default local inventory is `inventory/local.yml`.
 
+Phase1 also applies the swap policy. It disables Fedora's zram generator with
+the `systemd.zram=0` kernel argument and enables zswap in front of the encrypted
+swap partition.
+
 ## Disk Layout
 
 ```text
 part1  EFI System Partition       1G       /boot/efi
 part2  boot                       1G       /boot
 part3  cryptroot                  150G     LUKS2 + Btrfs root volume
+part4  cryptswap                  16G      LUKS2 + swap, used behind zswap
 part9  encrypted data             rest     LUKS2 + Btrfs data volume
 ```
 

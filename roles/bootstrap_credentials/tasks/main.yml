@@ -66,6 +66,8 @@
             bootstrap_credentials_luks_devices:
               - label: root
                 device: "{{ bootstrap_credentials_installer_facts.partitions.root }}"
+              - label: swap
+                device: "{{ bootstrap_credentials_installer_facts.partitions.swap }}"
               - label: data
                 device: "{{ bootstrap_credentials_installer_facts.partitions.data }}"
 

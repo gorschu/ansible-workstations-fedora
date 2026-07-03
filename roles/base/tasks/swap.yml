@@ -1,0 +1,118 @@
+---
+- name: Validate configured swap strategy
+  ansible.builtin.assert:
+    that:
+      - base_swap_strategy in ['zswap']
+    fail_msg: "Unsupported base_swap_strategy: {{ base_swap_strategy }}"
+
+- name: Configure zswap-backed encrypted disk swap
+  when: base_swap_strategy == 'zswap'
+  become: true
+  block:
+    - name: Ensure zswap support packages are installed
+      ansible.builtin.dnf:
+        name: "{{ base_zswap_packages }}"
+        state: present
+
+    - name: Ensure Fedora installer storage facts exist
+      ansible.builtin.stat:
+        path: "{{ base_swap_facts_file }}"
+      register: base_swap_facts_stat
+
+    - name: Fail if Fedora installer storage facts are missing
+      ansible.builtin.fail:
+        msg: >-
+          {{ base_swap_facts_file }} is missing. zswap policy expects a machine
+          installed by the Fedora Kickstart flow.
+      when: not base_swap_facts_stat.stat.exists
+
+    - name: Read Fedora installer storage facts
+      ansible.builtin.slurp:
+        src: "{{ base_swap_facts_file }}"
+      register: base_swap_facts_raw
+
+    - name: Parse Fedora installer storage facts
+      ansible.builtin.set_fact:
+        base_swap_installer_facts: "{{ base_swap_facts_raw.content | b64decode | from_yaml }}"
+
+    - name: Validate encrypted swap partition from installer facts
+      ansible.builtin.assert:
+        that:
+          - base_swap_installer_facts.partitions.swap is defined
+          - base_swap_installer_facts.partitions.swap is match('^/dev/')
+          - base_swap_installer_facts.luks.swap.uuid is defined
+          - base_swap_installer_facts.luks.swap.uuid | length > 0
+        fail_msg: "Invalid swap LUKS facts in {{ base_swap_facts_file }}"
+
+    - name: Verify installer swap device is LUKS
+      ansible.builtin.command:
+        argv:
+          - cryptsetup
+          - isLuks
+          - "{{ base_swap_installer_facts.partitions.swap }}"
+      changed_when: false
+
+    - name: Read current kernel entries
+      ansible.builtin.command:
+        argv:
+          - grubby
+          - --info=ALL
+      register: base_zswap_grubby_info
+      changed_when: false
+
+    - name: Determine zswap kernel argument state
+      ansible.builtin.set_fact:
+        base_zswap_kernel_arg_names: >-
+          {{ base_zswap_kernel_args | map('regex_replace', '=.*$', '') | list }}
+        base_zswap_kernel_args_need_update: >-
+          {{
+            (base_zswap_kernel_args | reject('in', base_zswap_grubby_info.stdout) | list | length > 0)
+          }}
+
+    - name: Remove managed zswap kernel arguments
+      ansible.builtin.command:
+        argv:
+          - grubby
+          - --update-kernel=ALL
+          - "--remove-args={{ base_zswap_kernel_arg_names | join(' ') }}"
+      register: base_zswap_grubby_remove
+      changed_when: true
+      when: base_zswap_kernel_args_need_update | bool
+
+    - name: Add desired zswap kernel arguments
+      ansible.builtin.command:
+        argv:
+          - grubby
+          - --update-kernel=ALL
+          - "--args={{ base_zswap_kernel_args | join(' ') }}"
+      register: base_zswap_grubby_add
+      changed_when: true
+      when: base_zswap_kernel_args_need_update | bool
+
+    - name: Configure swappiness for zswap
+      ansible.posix.sysctl:
+        name: vm.swappiness
+        value: "{{ base_zswap_swappiness | string }}"
+        state: present
+        sysctl_file: /etc/sysctl.d/90-zswap.conf
+        reload: true
+
+    - name: Refresh swap facts
+      ansible.builtin.setup:
+        gather_subset:
+          - "!all"
+          - "!min"
+          - hardware
+
+    - name: Validate active swap exists
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.swaptotal_mb | int > 0
+        fail_msg: "No active swap reported by Ansible facts; zswap needs real swap behind it."
+
+    - name: Report zswap reboot requirement
+      ansible.builtin.debug:
+        msg: >-
+          zswap policy changed. Reboot to disable active zram devices and apply
+          updated kernel arguments.
+      when: base_zswap_kernel_args_need_update | bool

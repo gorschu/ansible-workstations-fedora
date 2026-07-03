@@ -13,6 +13,10 @@
   ansible.builtin.import_tasks: packages.yml
   tags: packages
 
+- name: Configure swap policy
+  ansible.builtin.import_tasks: swap.yml
+  tags: swap
+
 - name: Configure base sysctl settings
   ansible.builtin.import_tasks: sysctl.yml
   tags: sysctl

@@ -8,3 +8,17 @@ base_cli_utils:
 
 # Host-specific extra packages (override in host_vars)
 base_extra_packages: []
+
+# Swap policy. The kickstart storage contract provides an encrypted disk swap
+# partition; Fedora's zram default is disabled in favor of zswap.
+base_swap_strategy: zswap
+base_swap_facts_file: "{{ storage_btrfs_facts_file | default('/fedora-workstation-storage.yml') }}"
+base_zswap_packages:
+  - grubby
+  - zswap-cli
+base_zswap_kernel_args:
+  - systemd.zram=0
+  - zswap.enabled=1
+  - zswap.compressor=lz4
+  - zswap.max_pool_percent=25
+base_zswap_swappiness: 80
