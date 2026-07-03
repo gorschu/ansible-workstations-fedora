@@ -92,16 +92,17 @@ ls -l /dev/disk/by-id/usb-*
 Use whole-device paths, not partition paths. In other words, write to
 `/dev/disk/by-id/usb-...`, not `/dev/disk/by-id/usb-...-part1`.
 
-Unmount anything mounted from the chosen stick, then write the rendered OEMDRV
-ISO:
+Write the rendered OEMDRV ISO with the guarded helper:
 
 ```bash
-sudo dd \
-  if=install/build/fedora-kickstart-oemdrv.hephaestus.iso \
-  of=/dev/disk/by-id/usb-<oemdrv-stick> \
-  bs=4M status=progress conv=fsync oflag=direct
-sync
+./install/write-oemdrv.sh \
+  --host hephaestus \
+  --device /dev/disk/by-id/usb-<oemdrv-stick>
 ```
+
+The helper renders the host-specific ISO, refuses non-block-device paths,
+unmounts filesystems from the target, writes the ISO, raw-compares the written
+bytes, and mounts the result read-only to compare `ks.cfg`.
 
 The OEMDRV stick is not meant to be booted. It only needs to be present next to
 the Fedora installer media.
