@@ -2,7 +2,8 @@
 # Fedora already provides most base workstation packages via the KDE Spin.
 # Keep these lists small and explicit; add only packages this playbook actually
 # needs but the installer does not provide.
-base_system_utils: []
+base_system_utils:
+  - yp-tools
 base_cli_utils:
   - zsh
 
