@@ -1,10 +1,15 @@
 ---
 desktop_general_packages:
   - freerdp
+  - gimp
   - solaar
   - kitty
 
 desktop_support_applications:
+  - hunspell-de
+  - hyphen-de
+  - libreoffice-langpack-de
+  - mythes-de
   - wl-clipboard
 
 desktop_vscode_state: present
