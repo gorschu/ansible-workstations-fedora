@@ -9,4 +9,4 @@ volume {{ job.volume_mount }}
   snapshot_create always
 
   subvolume {{ job.subvolume }}
-    snapshot_name {{ ansible_facts['hostname'] }}_{{ job.name }}
+    snapshot_name {{ ansible_facts['hostname'] }}.{{ job.name }}
