@@ -3,6 +3,7 @@
 # Keep these lists small and explicit; add only packages this playbook actually
 # needs but the installer does not provide.
 base_system_utils:
+  - ansible-core
   - yp-tools
 base_cli_utils:
   - zsh
