@@ -13,6 +13,8 @@ networking_wireguard_home_enabled: false
 networking_wifi_enabled: false
 onepassword_state: absent
 sync_tools_state: absent
+sync_tools_mega_state: absent
+sync_tools_insync_state: absent
 cli_tools_state: absent
 mail_pim_state: absent
 dev_tools_state: absent

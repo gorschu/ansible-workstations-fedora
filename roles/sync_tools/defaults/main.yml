@@ -7,3 +7,33 @@ sync_tools_packages:
   - syncthing
 
 sync_tools_extra_packages: []
+
+sync_tools_mega_state: present
+
+sync_tools_mega_repo_name: mega
+sync_tools_mega_repo_file: mega
+sync_tools_mega_repo_description: MEGA
+sync_tools_mega_repo_baseurl: "https://mega.nz/linux/repo/Fedora_{{ ansible_facts['distribution_major_version'] }}/"
+sync_tools_mega_repo_gpgkey: "{{ sync_tools_mega_repo_baseurl }}repodata/repomd.xml.key"
+
+sync_tools_mega_packages:
+  - megasync
+  - megacmd
+  - dolphin-megasync
+
+sync_tools_mega_extra_packages: []
+
+sync_tools_insync_state: present
+
+sync_tools_insync_repo_name: insync
+sync_tools_insync_repo_file: insync
+sync_tools_insync_repo_description: Insync
+sync_tools_insync_repo_baseurl: "https://yum.insync.io/fedora/{{ ansible_facts['distribution_major_version'] }}/"
+sync_tools_insync_repo_gpgkey: https://d2t3ff60b2tol4.cloudfront.net/repomd.xml.key
+sync_tools_insync_repo_metadata_expire: 120m
+
+sync_tools_insync_packages:
+  - insync
+  - insync-dolphin-kde6
+
+sync_tools_insync_extra_packages: []

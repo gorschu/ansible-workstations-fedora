@@ -1,0 +1,54 @@
+---
+- name: Add MEGA repository GPG key
+  become: true
+  ansible.builtin.rpm_key:
+    state: present
+    key: "{{ sync_tools_mega_repo_gpgkey }}"
+  when: sync_tools_mega_state == "present"
+
+- name: Configure MEGA repository
+  become: true
+  ansible.builtin.yum_repository:
+    name: "{{ sync_tools_mega_repo_name }}"
+    file: "{{ sync_tools_mega_repo_file }}"
+    description: "{{ sync_tools_mega_repo_description }}"
+    baseurl: "{{ sync_tools_mega_repo_baseurl }}"
+    enabled: true
+    gpgcheck: true
+    repo_gpgcheck: true
+    gpgkey: "{{ sync_tools_mega_repo_gpgkey }}"
+    state: present
+  when: sync_tools_mega_state == "present"
+
+- name: Install MEGA sync tools
+  become: true
+  ansible.builtin.dnf:
+    name: "{{ sync_tools_mega_packages + sync_tools_mega_extra_packages }}"
+    state: present
+  when:
+    - sync_tools_mega_state == "present"
+    - (sync_tools_mega_packages + sync_tools_mega_extra_packages) | length > 0
+
+- name: Remove MEGA sync tools
+  become: true
+  ansible.builtin.dnf:
+    name: "{{ sync_tools_mega_packages + sync_tools_mega_extra_packages }}"
+    state: absent
+  when:
+    - sync_tools_mega_state == "absent"
+    - (sync_tools_mega_packages + sync_tools_mega_extra_packages) | length > 0
+
+- name: Remove MEGA repository
+  become: true
+  ansible.builtin.yum_repository:
+    name: "{{ sync_tools_mega_repo_name }}"
+    file: "{{ sync_tools_mega_repo_file }}"
+    state: absent
+  when: sync_tools_mega_state == "absent"
+
+- name: Remove MEGA repository GPG key
+  become: true
+  ansible.builtin.rpm_key:
+    state: absent
+    key: "{{ sync_tools_mega_repo_gpgkey }}"
+  when: sync_tools_mega_state == "absent"

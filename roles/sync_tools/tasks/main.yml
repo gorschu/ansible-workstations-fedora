@@ -3,13 +3,15 @@
   ansible.builtin.assert:
     that:
       - sync_tools_state in ["present", "absent"]
+      - sync_tools_mega_state in ["present", "absent"]
+      - sync_tools_insync_state in ["present", "absent"]
     quiet: true
 
-- name: Install Fedora-native sync tools
-  become: true
-  ansible.builtin.dnf:
-    name: "{{ sync_tools_packages + sync_tools_extra_packages }}"
-    state: present
-  when:
-    - sync_tools_state == "present"
-    - (sync_tools_packages + sync_tools_extra_packages) | length > 0
+- name: Configure Fedora-native sync tools
+  ansible.builtin.include_tasks: native.yml
+
+- name: Configure MEGA sync tools
+  ansible.builtin.include_tasks: mega.yml
+
+- name: Configure Insync sync tools
+  ansible.builtin.include_tasks: insync.yml
