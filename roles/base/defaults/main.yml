@@ -5,6 +5,7 @@
 base_system_utils:
   - ansible-core
   - yp-tools
+  - strace
 base_cli_utils:
   - zsh
 
