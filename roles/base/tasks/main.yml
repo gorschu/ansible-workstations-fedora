@@ -20,3 +20,7 @@
 - name: Configure base sysctl settings
   ansible.builtin.import_tasks: sysctl.yml
   tags: sysctl
+
+- name: Load and persist kernel modules
+  ansible.builtin.import_tasks: kernel_modules.yml
+  tags: kernel_modules
