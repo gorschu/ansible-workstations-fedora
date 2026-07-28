@@ -1,0 +1,12 @@
+---
+# ntsync gives Wine/Proton kernel-level NT synchronization (faster than fsync/esync
+# and, on this setup, what lets FFXI memory-injection tools share the game's
+# wineserver cleanly). Fedora ships the driver as a module (CONFIG_NTSYNC=m) but
+# does not autoload it, so /dev/ntsync is absent until something modprobes it.
+# The driver registers the device 0666, so no udev rule is needed for user access.
+- name: Load and persist ntsync kernel module
+  become: true
+  community.general.modprobe:
+    name: ntsync
+    state: present
+    persistent: present
