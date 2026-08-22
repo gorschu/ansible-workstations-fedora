@@ -135,6 +135,7 @@ downloads/
 .local/share/Steam/
 .steam/
 .local/share/lutris/
+.local/share/umu/
 Games/
 .local/share/Cryptomator/mnt/
 
