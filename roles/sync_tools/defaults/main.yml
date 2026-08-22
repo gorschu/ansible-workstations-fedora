@@ -3,6 +3,7 @@ sync_tools_state: present
 
 # User-facing sync/mount daemons that chezmoi may activate as user services.
 sync_tools_packages:
+  - fuse3
   - rclone
   - syncthing
 
