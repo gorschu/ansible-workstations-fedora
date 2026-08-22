@@ -8,6 +8,10 @@ backup_resticprofile_state: absent
 # this for vault-free VM tests of the install path.
 backup_resticprofile_configure_enabled: true
 
+# Stop a resticprofile job that remains active well beyond its expected runtime.
+# Systemd accepts time spans such as "2h" for RuntimeMaxSec.
+backup_resticprofile_runtime_max: 2h
+
 # Fedora carries restic and apprise, but not resticprofile. Install the upstream
 # no-self-update binary so upgrades remain controlled by these pinned values.
 backup_resticprofile_packages:

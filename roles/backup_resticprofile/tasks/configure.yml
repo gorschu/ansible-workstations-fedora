@@ -32,6 +32,47 @@
     backup_resticprofile_pushover_user_key: "{{ vault_resticprofile_pushover.user_key }}"
   no_log: true
 
+- name: Deploy hook scripts
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: "0755"
+    owner: root
+    group: root
+  loop:
+    - {src: notify.sh.j2, dest: /etc/resticprofile/hooks/notify.sh}
+    - {src: check-metered.sh.j2, dest: /etc/resticprofile/hooks/check-metered.sh}
+
+- name: Deploy excludes.txt
+  ansible.builtin.copy:
+    src: excludes.txt
+    dest: /etc/resticprofile/excludes.txt
+    mode: "0600"
+    owner: root
+    group: root
+
+- name: Deploy systemd drop-in file
+  ansible.builtin.template:
+    src: 99-skip-metered.conf.j2
+    dest: /etc/resticprofile/99-skip-metered.conf
+    mode: "0644"
+    owner: root
+    group: root
+  register: backup_resticprofile_drop_in
+  notify: Backup_resticprofile.reload_systemd
+
+- name: Deploy backend-specific env files
+  ansible.builtin.template:
+    src: backend.env.j2
+    dest: "/etc/resticprofile/{{ item }}.env"
+    mode: "0600"
+    owner: root
+    group: root
+  vars:
+    backend: "{{ item }}"
+  loop: "{{ backup_resticprofile_backend_names }}"
+  no_log: true
+
 - name: Deploy profiles.toml
   block:
     - name: Create temp file for config comparison
@@ -57,16 +98,20 @@
         - /etc/resticprofile/profiles.toml
         - "{{ backup_resticprofile_temp_config.path }}"
 
-    - name: Determine if config needs update
+    - name: Determine if config or systemd schedules need update
       vars:
         current: "{{ backup_resticprofile_config_stats.results[0].stat }}"
         new: "{{ backup_resticprofile_config_stats.results[1].stat }}"
       ansible.builtin.set_fact:
-        backup_resticprofile_config_needs_update: >-
-          {{ not current.exists or current.checksum != new.checksum }}
+        backup_resticprofile_schedule_needs_update: >-
+          {{
+            not current.exists
+            or current.checksum != new.checksum
+            or backup_resticprofile_drop_in.changed
+          }}
 
-    - name: Update resticprofile config if changed
-      when: backup_resticprofile_config_needs_update | bool
+    - name: Update resticprofile config and schedules if needed
+      when: backup_resticprofile_schedule_needs_update | bool
       block:
         - name: Unschedule all timers before updating config
           ansible.builtin.command:
@@ -99,46 +144,6 @@
         path: "{{ backup_resticprofile_temp_config.path }}"
         state: absent
       changed_when: false
-
-- name: Deploy hook scripts
-  ansible.builtin.template:
-    src: "{{ item.src }}"
-    dest: "{{ item.dest }}"
-    mode: "0755"
-    owner: root
-    group: root
-  loop:
-    - {src: notify.sh.j2, dest: /etc/resticprofile/hooks/notify.sh}
-    - {src: check-metered.sh.j2, dest: /etc/resticprofile/hooks/check-metered.sh}
-
-- name: Deploy excludes.txt
-  ansible.builtin.copy:
-    src: excludes.txt
-    dest: /etc/resticprofile/excludes.txt
-    mode: "0600"
-    owner: root
-    group: root
-
-- name: Deploy systemd drop-in file
-  ansible.builtin.template:
-    src: 99-skip-metered.conf.j2
-    dest: /etc/resticprofile/99-skip-metered.conf
-    mode: "0644"
-    owner: root
-    group: root
-  notify: Backup_resticprofile.reload_systemd
-
-- name: Deploy backend-specific env files
-  ansible.builtin.template:
-    src: backend.env.j2
-    dest: "/etc/resticprofile/{{ item }}.env"
-    mode: "0600"
-    owner: root
-    group: root
-  vars:
-    backend: "{{ item }}"
-  loop: "{{ backup_resticprofile_backend_names }}"
-  no_log: true
 
 - name: Ensure status.json has appropriate permissions
   ansible.builtin.file:

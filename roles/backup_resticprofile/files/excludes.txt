@@ -22,7 +22,7 @@ Cloud
 .cache
 
 # Firefox profiles (synced via Firefox Sync)
-/home/gorschu/data/general/mozilla/.config/mozilla/
+/home/*/data/general/mozilla/.config/mozilla/
 .thumbnails
 .mozilla/firefox/*/OfflineCache/
 .mozilla/firefox/*/startupCache/
@@ -44,6 +44,7 @@ Cloud
 # IDE and editor caches
 .local/share/JetBrains/
 .local/share/jetbrains-toolbox/
+.config/JetBrains/*/event-log-metadata/
 .config/Code/CachedData/
 .config/Code/Cache/
 .config/Code/CachedExtensions/
@@ -135,13 +136,14 @@ downloads/
 .steam/
 .local/share/lutris/
 Games/
+.local/share/Cryptomator/mnt/
 
 # Flatpak apps (normal and symlinked location)
 .var/app/
-/home/gorschu/data/general/flatpak/app/
+/home/*/data/general/flatpak/app/
 # backup betterbird
 !.var/app/eu.betterbird.Betterbird/
-!/home/gorschu/data/general/flatpak/app/eu.betterbird.Betterbird/
+!/home/*/data/general/flatpak/app/eu.betterbird.Betterbird/
 # but exclude betterbird cruft (flatpak runtime overhead)
 .var/app/eu.betterbird.Betterbird/.ld.so/
 .var/app/eu.betterbird.Betterbird/.local/
@@ -203,6 +205,7 @@ Games/
 .local/share/fonts
 
 # Email caches (IMAP)
+/home/*/data/mail/.notmuch/
 .thunderbird/*/ImapMail/
 .thunderbird/*/Imap/
 .mozilla/thunderbird/*/ImapMail/
