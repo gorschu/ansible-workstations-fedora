@@ -28,3 +28,19 @@ backup_btrbk_jobs:
     preserve_min: "2h"
     preserve: "48h 30d 2w 1m"
     schedule: hourly
+  - name: games
+    description: games subvolume snapshot
+    volume_mount: /mnt/btrfs_data
+    subvolume: data/games
+    log: /var/log/btrbk-games.log
+    preserve_min: latest
+    preserve: "6h"
+    schedule: hourly
+  - name: flatpak
+    description: flatpak app data subvolume snapshot
+    volume_mount: /mnt/btrfs_data
+    subvolume: data/general/flatpak
+    log: /var/log/btrbk-flatpak.log
+    preserve_min: latest
+    preserve: "24h"
+    schedule: hourly

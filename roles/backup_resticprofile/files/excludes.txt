@@ -224,4 +224,6 @@ Dropbox
 .config/WowUpCf
 .config/discord
 .config/obsidian/Cache
+# Games subvolume (XIVLauncher/Dalamud prefix, game installs).
+/home/*/data/games/
 .xlcore

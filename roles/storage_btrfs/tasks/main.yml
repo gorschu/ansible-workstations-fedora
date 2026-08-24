@@ -205,6 +205,50 @@
         mode: "{{ item.mode }}"
       loop: "{{ storage_btrfs_data_directories }}"
 
+    # Nested subvolumes inside ~/data. These need no mount unit.
+    - name: Check current state of nested subvolume paths
+      ansible.builtin.stat:
+        path: "{{ item.path }}"
+      register: storage_btrfs_nested_stat
+      loop: "{{ storage_btrfs_nested_subvolumes }}"
+      loop_control:
+        label: "{{ item.path }}"
+
+    - name: Fail if a nested subvolume path exists as a plain directory
+      ansible.builtin.fail:
+        msg: >-
+          {{ item.item.path }} exists but is not a subvolume (inode
+          {{ item.stat.inode }}, expected 256). A subvolume cannot be created over
+          an existing directory; convert it first, see
+          roles/storage_btrfs/MIGRATION.md.
+      loop: "{{ storage_btrfs_nested_stat.results }}"
+      loop_control:
+        label: "{{ item.item.path }}"
+      when:
+        - item.stat.exists
+        - item.stat.inode != 256
+
+    - name: Ensure nested subvolumes exist
+      community.general.btrfs_subvolume:
+        name: "{{ item.item.subvolume }}"
+        filesystem_uuid: "{{ storage_btrfs_top_mountpoint | uuid_for_mount(ansible_facts['mounts']) }}"
+        state: present
+      loop: "{{ storage_btrfs_nested_stat.results }}"
+      loop_control:
+        label: "{{ item.item.path }}"
+      when: not item.stat.exists
+
+    - name: Ensure nested subvolume ownership and mode
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: directory
+        owner: "{{ primary_user }}"
+        group: "{{ primary_user }}"
+        mode: "0700"
+      loop: "{{ storage_btrfs_nested_subvolumes }}"
+      loop_control:
+        label: "{{ item.path }}"
+
     - name: Ensure ~/.var mount point exists
       ansible.builtin.file:
         path: "{{ primary_user_home }}/.var"
