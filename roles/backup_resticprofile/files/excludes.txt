@@ -216,7 +216,17 @@ Games/
 OneDrive
 Dropbox
 .local/share/pCloud/
-.local/share/mega/
+
+# Cloud sync targets exposed through ~/Cloud symlinks
+/home/*/data/cloud/mega/
+
+# Keep only the Cryptomator vault from Insync. Restic cannot re-include a
+# descendant of an excluded directory, so reopen each parent before narrowing
+# the next level.
+/home/*/data/cloud/insync/*/*
+!/home/*/data/cloud/insync/*/Google Drive
+/home/*/data/cloud/insync/*/Google Drive/*
+!/home/*/data/cloud/insync/*/Google Drive/Cryptomator
 
 # Misc application caches and configs to skip
 .local/share/vicinae/
