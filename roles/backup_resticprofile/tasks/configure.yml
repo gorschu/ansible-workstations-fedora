@@ -61,10 +61,43 @@
   register: backup_resticprofile_drop_in
   notify: Backup_resticprofile.reload_systemd
 
+- name: Find deployed backend credential files
+  ansible.builtin.find:
+    paths: /etc/resticprofile
+    patterns:
+      - "*.env"
+      - "*.password"
+    file_type: file
+    recurse: false
+  register: backup_resticprofile_deployed_backend_files
+
+- name: Remove credential files for unmanaged backends
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ backup_resticprofile_deployed_backend_files.files }}"
+  loop_control:
+    label: "{{ item.path }}"
+  when: >-
+    item.path | basename | splitext | first
+    not in backup_resticprofile_backend_names
+
 - name: Deploy backend-specific env files
   ansible.builtin.template:
     src: backend.env.j2
     dest: "/etc/resticprofile/{{ item }}.env"
+    mode: "0600"
+    owner: root
+    group: root
+  vars:
+    backend: "{{ item }}"
+  loop: "{{ backup_resticprofile_backend_names }}"
+  no_log: true
+
+- name: Deploy backend-specific password files
+  ansible.builtin.template:
+    src: backend.password.j2
+    dest: "/etc/resticprofile/{{ item }}.password"
     mode: "0600"
     owner: root
     group: root

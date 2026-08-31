@@ -1,0 +1,4 @@
+---
+creation_rules:
+  - path_regex: infrastructure/terraform/.*/values-secret.*\.yaml$
+    age: age1aph83gkdg83l6cf83nsdthp95dcd5natpa7527sd3p8rtlcj3dgstl502c

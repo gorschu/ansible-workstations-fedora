@@ -4,3 +4,14 @@ install/build/
 *.pyc
 .claude/
 .ansible
+
+# OpenTofu local working data and state artifacts. Provider lock files stay
+# committed; persistent secrets live only in SOPS files.
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars
+!*.tfvars.example
+**/values-secret-bootstrap.yaml
+crash.log

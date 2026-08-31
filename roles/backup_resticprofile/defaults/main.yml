@@ -9,8 +9,12 @@ backup_resticprofile_state: absent
 backup_resticprofile_configure_enabled: true
 
 # Stop a resticprofile job that remains active well beyond its expected runtime.
-# Systemd accepts time spans such as "2h" for RuntimeMaxSec.
-backup_resticprofile_runtime_max: 2h
+# A fresh full backup must still fit comfortably within this ceiling.
+backup_resticprofile_runtime_max: 4h
+
+# Limit each workstation backup to about 50 Mbit/s, leaving bandwidth for the
+# Pilon backup jobs sharing the uplink. Restic expects KiB/s.
+backup_resticprofile_limit_upload: 6144
 
 # Fedora carries restic and apprise, but not resticprofile. Install the upstream
 # no-self-update binary so upgrades remain controlled by these pinned values.
@@ -36,3 +40,8 @@ backup_resticprofile_remove_packages_on_absent: true
 backup_resticprofile_backup_sources:
   - "/home"
   - "/etc"
+
+# Optional backend-specific Restic extended options. Scaleway Standard One
+# Zone is selected per object rather than on the bucket itself.
+backup_resticprofile_backend_options:
+  scaleway: s3.storage-class=ONEZONE_IA

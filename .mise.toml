@@ -6,8 +6,12 @@ experimental = true
 pipx.uvx = true
 
 [tools]
-prek = "v0.3.6"                   # renovate: datasource=github-releases depName=j178/prek
-ansible = "13.1"               # renovate: datasource=github-releases depName=ansible/ansible
+opentofu = "1.12.6"                  # renovate: datasource=github-releases depName=opentofu/opentofu
+scaleway-cli = "2.60.0"               # renovate: datasource=github-releases depName=scaleway/scaleway-cli
+sops = "3.13.3"                      # renovate: datasource=github-releases depName=getsops/sops
+age = "v1.3.1"                       # renovate: datasource=github-releases depName=FiloSottile/age
+prek = "v0.3.6"                      # renovate: datasource=github-releases depName=j178/prek
+ansible = "13.1"                     # renovate: datasource=github-releases depName=ansible/ansible
 pipx = "latest"
 uv = "latest"
 python = "3.14"

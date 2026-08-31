@@ -1,4 +1,13 @@
 repos:
+  - repo: local
+    hooks:
+      - id: tofu-fmt
+        name: OpenTofu format
+        entry: tofu fmt -check -recursive
+        language: system
+        files: \.tf$
+        pass_filenames: false
+
   # Secret scanning
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.30.1
@@ -37,7 +46,9 @@ repos:
     rev: v1.38.0
     hooks:
       - id: yamllint
-        exclude: ^modified_externally/
+        # SOPS ciphertext is generated and routinely exceeds the prose limit.
+        exclude: >-
+          ^(modified_externally/|infrastructure/terraform/.*/values-secret\.yaml$)
         args:
           [
             "-d",

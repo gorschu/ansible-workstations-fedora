@@ -18,9 +18,13 @@
 [workstation-{{ backend }}]
   inherit = "default"
   repository = "{{ backup_resticprofile_backend_credentials[backend][ansible_facts['hostname']].repository }}"
+  password-file = "/etc/resticprofile/{{ backend }}.password"
   env-file = ["/etc/resticprofile/{{ backend }}.env"]
   initialize = true
   systemd-drop-in-files = ["99-skip-metered.conf"]
+{% if backup_resticprofile_backend_options.get(backend) %}
+  option = "{{ backup_resticprofile_backend_options[backend] }}"
+{% endif %}
 
   [workstation-{{ backend }}.backup]
     source = {{ backup_resticprofile_backup_sources | to_json }}
@@ -30,7 +34,7 @@
 
     tag = ["host:{{ ansible_facts['hostname'] }}", "system-backup"]
 
-    limit-upload = 2560
+    limit-upload = {{ backup_resticprofile_limit_upload }}
     schedule = "*-*-* 0/3:00:00"
     schedule-permission = "system"
     schedule-after-network-online = true
