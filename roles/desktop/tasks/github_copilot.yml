@@ -1,0 +1,97 @@
+---
+# GitHub Copilot app
+# https://github.com/github/app
+
+- name: Validate GitHub Copilot app configuration
+  ansible.builtin.assert:
+    that:
+      - desktop_github_copilot_state in ["present", "absent"]
+      - >-
+        desktop_github_copilot_state == "absent"
+        or ansible_facts["architecture"] in desktop_github_copilot_rpm_names
+    quiet: true
+
+- name: Install or update the GitHub Copilot app
+  when: desktop_github_copilot_state == "present"
+  block:
+    - name: Resolve the latest GitHub Copilot app release
+      ansible.builtin.uri:
+        url: "{{ desktop_github_copilot_release_api_url }}"
+        headers:
+          Accept: application/vnd.github+json
+          X-GitHub-Api-Version: "2022-11-28"
+        return_content: true
+        status_code: 200
+      register: desktop_github_copilot_release
+      changed_when: false
+
+    - name: Select the GitHub Copilot RPM release asset
+      ansible.builtin.set_fact:
+        desktop_github_copilot_assets: >-
+          {{
+            desktop_github_copilot_release.json.assets
+            | selectattr("name", "equalto", desktop_github_copilot_rpm_names[ansible_facts["architecture"]])
+            | list
+          }}
+        desktop_github_copilot_latest_version: >-
+          {{ desktop_github_copilot_release.json.tag_name | regex_replace("^v", "") }}
+
+    - name: Validate the GitHub Copilot RPM release asset
+      ansible.builtin.assert:
+        that:
+          - desktop_github_copilot_assets | length == 1
+          - desktop_github_copilot_assets[0].digest is match("^sha256:[0-9a-f]{64}$")
+        fail_msg: GitHub's latest release does not contain one checksum-published RPM for this architecture.
+        quiet: true
+
+    - name: Gather installed package facts for the GitHub Copilot app
+      ansible.builtin.package_facts:
+        manager: auto
+
+    - name: Determine the installed GitHub Copilot app version
+      ansible.builtin.set_fact:
+        desktop_github_copilot_installed_version: >-
+          {{
+            ansible_facts.packages[desktop_github_copilot_package][0].version
+            if desktop_github_copilot_package in ansible_facts.packages
+            else "0"
+          }}
+
+    - name: Install the latest GitHub Copilot app RPM
+      when: desktop_github_copilot_installed_version is version(desktop_github_copilot_latest_version, "<")
+      become: true
+      block:
+        - name: Create a temporary GitHub Copilot RPM directory
+          ansible.builtin.tempfile:
+            state: directory
+            suffix: github-copilot
+          register: desktop_github_copilot_temp_dir
+
+        - name: Download the checksum-verified GitHub Copilot RPM
+          ansible.builtin.get_url:
+            url: "{{ desktop_github_copilot_assets[0].browser_download_url }}"
+            dest: "{{ desktop_github_copilot_temp_dir.path }}/{{ desktop_github_copilot_assets[0].name }}"
+            checksum: "{{ desktop_github_copilot_assets[0].digest }}"
+            mode: "0644"
+
+        - name: Install the GitHub Copilot RPM
+          ansible.builtin.dnf:
+            name: "{{ desktop_github_copilot_temp_dir.path }}/{{ desktop_github_copilot_assets[0].name }}"
+            state: present
+            # GitHub's RPM is unsigned; the preceding task verifies GitHub's published SHA-256.
+            disable_gpg_check: true
+      always:
+        - name: Remove the temporary GitHub Copilot RPM directory
+          when: desktop_github_copilot_temp_dir is defined
+          ansible.builtin.file:
+            path: "{{ desktop_github_copilot_temp_dir.path }}"
+            state: absent
+
+- name: Remove the GitHub Copilot app
+  when: desktop_github_copilot_state == "absent"
+  block:
+    - name: Remove the GitHub Copilot app package
+      become: true
+      ansible.builtin.dnf:
+        name: "{{ desktop_github_copilot_package }}"
+        state: absent

@@ -25,3 +25,7 @@
 - name: Configure Vivaldi
   ansible.builtin.import_tasks: vivaldi.yml
   tags: [vivaldi]
+
+- name: Configure AI desktop applications
+  ansible.builtin.import_tasks: ai.yml
+  tags: [ai]

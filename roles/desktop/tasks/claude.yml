@@ -1,0 +1,71 @@
+---
+# Unofficial Fedora repackage of Anthropic's official Linux build
+# https://github.com/patrickjaja/claude-desktop-extra
+
+- name: Validate Claude Desktop configuration
+  ansible.builtin.assert:
+    that:
+      - desktop_claude_state in ["present", "absent"]
+      - ansible_facts["architecture"] in ["x86_64", "aarch64"] or desktop_claude_state == "absent"
+    quiet: true
+
+- name: Install Claude Desktop
+  when: desktop_claude_state == "present"
+  become: true
+  block:
+    - name: Import Claude Desktop repository GPG key
+      ansible.builtin.rpm_key:
+        key: "{{ desktop_claude_repo_gpgkey }}"
+        fingerprint: "{{ desktop_claude_repo_gpg_fingerprint }}"
+        state: present
+
+    # Keep the exact upstream formatting: the package's post-install script only
+    # recognizes metadata_expire without whitespace around the equals sign.
+    - name: Configure Claude Desktop repository
+      ansible.builtin.copy:
+        dest: "/etc/yum.repos.d/{{ desktop_claude_repo_file }}.repo"
+        content: |
+          [{{ desktop_claude_repo_name }}]
+          name={{ desktop_claude_repo_description }}
+          baseurl={{ desktop_claude_repo_baseurl }}
+          enabled=1
+          gpgcheck=1
+          gpgkey={{ desktop_claude_repo_gpgkey }}
+          repo_gpgcheck=1
+          metadata_expire={{ desktop_claude_repo_metadata_expire }}
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Install Claude Desktop package
+      ansible.builtin.dnf:
+        name: "{{ desktop_claude_package }}"
+        state: present
+        update_cache: true
+
+    - name: Grant primary user KVM access for Claude Cowork
+      when: desktop_claude_cowork_enabled
+      ansible.builtin.user:
+        name: "{{ primary_user }}"
+        groups: kvm
+        append: true
+
+- name: Remove Claude Desktop
+  when: desktop_claude_state == "absent"
+  become: true
+  block:
+    - name: Remove Claude Desktop package
+      ansible.builtin.dnf:
+        name: "{{ desktop_claude_package }}"
+        state: absent
+
+    - name: Remove Claude Desktop repository
+      ansible.builtin.file:
+        path: "/etc/yum.repos.d/{{ desktop_claude_repo_file }}.repo"
+        state: absent
+
+    - name: Remove Claude Desktop repository GPG key
+      ansible.builtin.rpm_key:
+        key: "{{ desktop_claude_repo_gpgkey }}"
+        fingerprint: "{{ desktop_claude_repo_gpg_fingerprint }}"
+        state: absent

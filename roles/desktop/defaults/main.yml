@@ -15,6 +15,9 @@ desktop_support_applications:
 desktop_vscode_state: present
 desktop_chrome_state: present
 desktop_vivaldi_state: present
+desktop_chatgpt_state: present
+desktop_claude_state: present
+desktop_github_copilot_state: present
 
 desktop_vscode_package: code
 desktop_vscode_repo_key: https://packages.microsoft.com/keys/microsoft.asc
@@ -27,3 +30,24 @@ desktop_chrome_repo_baseurl: https://dl.google.com/linux/chrome/rpm/stable/x86_6
 desktop_vivaldi_package: vivaldi-stable
 desktop_vivaldi_repo_key: https://repo.vivaldi.com/archive/linux_signing_key.pub
 desktop_vivaldi_repo_baseurl: https://repo.vivaldi.com/archive/rpm/x86_64
+
+desktop_chatgpt_package: chatgpt
+desktop_chatgpt_rpm_urls:
+  x86_64: https://persistent.oaistatic.com/codex-app-prod/linux/rpm/latest/chatgpt.x86_64.rpm
+  aarch64: https://persistent.oaistatic.com/codex-app-prod/linux/rpm/latest/chatgpt.aarch64.rpm
+
+desktop_claude_package: claude-desktop-extra
+desktop_claude_repo_file: claude-desktop
+desktop_claude_repo_name: claude-desktop
+desktop_claude_repo_description: Claude Desktop for Linux
+desktop_claude_repo_baseurl: https://patrickjaja.github.io/claude-desktop-extra/rpm/
+desktop_claude_repo_gpgkey: https://patrickjaja.github.io/claude-desktop-extra/gpg-key.asc
+desktop_claude_repo_gpg_fingerprint: "825A 7D15 D78B ABE4 5646 D5DF 3824 09F5 9790 8867"
+desktop_claude_repo_metadata_expire: 300
+desktop_claude_cowork_enabled: true
+
+desktop_github_copilot_package: github
+desktop_github_copilot_release_api_url: https://api.github.com/repos/github/app/releases/latest
+desktop_github_copilot_rpm_names:
+  x86_64: GitHub-Copilot-linux-x64.rpm
+  aarch64: GitHub-Copilot-linux-arm64.rpm

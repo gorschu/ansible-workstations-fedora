@@ -1,0 +1,14 @@
+---
+# AI desktop applications
+
+- name: Configure ChatGPT
+  ansible.builtin.import_tasks: chatgpt.yml
+  tags: [chatgpt]
+
+- name: Configure Claude Desktop
+  ansible.builtin.import_tasks: claude.yml
+  tags: [claude]
+
+- name: Configure GitHub Copilot app
+  ansible.builtin.import_tasks: github_copilot.yml
+  tags: [github_copilot, copilot]

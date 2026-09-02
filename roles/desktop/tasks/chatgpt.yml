@@ -1,0 +1,42 @@
+---
+# ChatGPT desktop app for Linux
+# https://learn.chatgpt.com/de-DE/docs/linux/linux-app
+
+- name: Validate ChatGPT configuration
+  ansible.builtin.assert:
+    that:
+      - desktop_chatgpt_state in ["present", "absent"]
+      - >-
+        desktop_chatgpt_state == "absent"
+        or ansible_facts["architecture"] in desktop_chatgpt_rpm_urls
+    fail_msg: >-
+      ChatGPT state must be present or absent, and installation requires an official RPM for
+      architecture {{ ansible_facts["architecture"] }}.
+    quiet: true
+
+- name: Install ChatGPT
+  when: desktop_chatgpt_state == "present"
+  block:
+    - name: Gather installed package facts for ChatGPT
+      ansible.builtin.package_facts:
+        manager: auto
+
+    - name: Install ChatGPT bootstrap RPM
+      when: desktop_chatgpt_package not in ansible_facts.packages
+      become: true
+      ansible.builtin.dnf:
+        name: "{{ desktop_chatgpt_rpm_urls[ansible_facts['architecture']] }}"
+        state: present
+        # The official bootstrap RPM installs OpenAI's repository key itself.
+        # DNF5 otherwise rejects the remote @commandline package before its
+        # post-install script can configure that key and the signed repository.
+        disable_gpg_check: true
+
+- name: Remove ChatGPT
+  when: desktop_chatgpt_state == "absent"
+  block:
+    - name: Remove ChatGPT package
+      become: true
+      ansible.builtin.dnf:
+        name: "{{ desktop_chatgpt_package }}"
+        state: absent
