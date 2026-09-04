@@ -1,6 +1,7 @@
 ---
 # desktop
 kde_state: present
+niri_state: present
 
 backup_resticprofile_state: present
 backup_resticprofile_backup_sources:
