@@ -1,0 +1,37 @@
+---
+- name: Validate Niri role state
+  ansible.builtin.assert:
+    that:
+      - niri_state in ['present', 'absent']
+    fail_msg: "niri_state must be either 'present' or 'absent'"
+
+- name: Install Niri session packages
+  when: niri_state == 'present'
+  become: true
+  block:
+    - name: Enable the Vicinae COPR
+      community.general.copr:
+        name: "{{ niri_vicinae_copr }}"
+        state: enabled
+        includepkgs: "{{ niri_vicinae_copr_packages }}"
+
+    - name: Install the explicit Niri session package set
+      ansible.builtin.dnf:
+        name: "{{ niri_packages }}"
+        state: present
+        install_weak_deps: false
+
+- name: Remove the optional Niri session
+  when: niri_state == 'absent'
+  become: true
+  block:
+    - name: Remove Niri-specific packages only
+      ansible.builtin.dnf:
+        name: "{{ niri_remove_packages }}"
+        state: absent
+        autoremove: false
+
+    - name: Remove the Vicinae COPR
+      community.general.copr:
+        name: "{{ niri_vicinae_copr }}"
+        state: absent

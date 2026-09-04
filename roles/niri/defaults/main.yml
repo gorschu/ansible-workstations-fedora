@@ -1,0 +1,41 @@
+---
+# Optional Niri session. Hosts must opt in explicitly.
+niri_state: absent
+
+niri_vicinae_copr: quadratech188/vicinae
+niri_vicinae_copr_packages:
+  - vicinae
+  # Vicinae links against this COPR-provided calculator library.
+  - numen
+
+# Keep this explicit: weak dependencies must not choose the shell, launcher,
+# locker, portal, or desktop integration for us.
+niri_packages:
+  - niri
+  - kanshi
+  - noctalia
+  - vicinae
+  - numen
+  - xdg-desktop-portal-gnome
+  - xdg-desktop-portal-gtk
+  - xdg-desktop-portal-kde
+  - pam-kwallet
+  - polkit-kde
+  - kde-gtk-config
+  - plasma-integration
+  - kf6-kded
+  - knighttime
+  - qt6-qttools
+  - kdeconnectd
+  - upower
+  # Used by the small output-profile helper to consume Niri's stable JSON IPC.
+  - jq
+
+# Removing the optional session deliberately leaves shared KDE/portal packages
+# and all user data alone.
+niri_remove_packages:
+  - niri
+  - kanshi
+  - noctalia
+  - vicinae
+  - numen

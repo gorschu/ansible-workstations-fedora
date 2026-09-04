@@ -54,6 +54,8 @@
       tags: [cloud, tools, phase4]
     - role: kde
       tags: [kde, desktop, phase4]
+    - role: niri
+      tags: [niri, desktop, phase4]
     - role: desktop
       tags: [desktop, gui, vscode, chrome, vivaldi, phase4]
 # vim: set ft=yaml.ansible:
