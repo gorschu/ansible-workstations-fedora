@@ -10,6 +10,8 @@ niri_vicinae_copr_packages:
 
 # Keep this explicit: weak dependencies must not choose the shell, launcher,
 # locker, portal, or desktop integration for us.
+# Noctalia's gnome-keyring recommendation is intentionally omitted: KDE's
+# ksecretd supplies org.freedesktop.secrets, with pam-kwallet for login unlock.
 niri_packages:
   - niri
   - kanshi
@@ -28,6 +30,11 @@ niri_packages:
   - qt6-qttools
   - kdeconnectd
   - upower
+  # Noctalia only recommends ddcutil; idle dimming needs it for external DDC/CI monitors.
+  - ddcutil
+  # Save/restore laptop backlight brightness during Noctalia idle dimming.
+  - brightnessctl
+  - python3
   # Used by the small output-profile helper to consume Niri's stable JSON IPC.
   - jq
 
