@@ -1,0 +1,6 @@
+{{ ansible_managed | comment }}
+# Only start scheduled repository checks on the home network.
+
+[Service]
+# %p is resticprofile-check for check units; other jobs pass this condition.
+ExecCondition=/etc/resticprofile/hooks/check-home-network.py %p

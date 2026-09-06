@@ -1,0 +1,40 @@
+#!/usr/bin/python3
+{{ ansible_managed | comment }}
+"""Skip scheduled checks away from home before resticprofile inhibits sleep."""
+
+import ipaddress
+import json
+import subprocess
+import sys
+
+
+def main():
+    if len(sys.argv) != 2:
+        print("Skipping operation: expected a systemd unit prefix", file=sys.stderr)
+        return 1
+    if sys.argv[1] != "resticprofile-check":
+        return 0
+
+    try:
+        network = ipaddress.IPv4Network({{ backup_resticprofile_check_home_network | to_json }})
+        result = subprocess.run(
+            ["/usr/sbin/ip", "-j", "-4", "address", "show", "up", "scope", "global"],
+            check=True, capture_output=True, text=True, timeout=10,
+        )
+        for interface in json.loads(result.stdout):
+            for address in interface.get("addr_info", []):
+                if address.get("family") != "inet":
+                    continue
+                if ipaddress.IPv4Address(address["local"]) in network:
+                    print(f"Commencing check: home network {network} detected")
+                    return 0
+    except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as error:
+        print(f"Skipping check: cannot determine home network: {error}", file=sys.stderr)
+        return 1
+
+    print(f"Skipping check: no active IPv4 address in {network}", file=sys.stderr)
+    return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

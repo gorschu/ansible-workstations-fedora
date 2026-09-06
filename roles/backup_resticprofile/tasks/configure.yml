@@ -1,6 +1,13 @@
 ---
 # Configure resticprofile - directories, config files, hooks
 
+- name: Install network guard dependencies
+  ansible.builtin.dnf:
+    name:
+      - iproute
+      - python3
+    state: present
+
 - name: Create directories
   ansible.builtin.file:
     path: "{{ item.path }}"
@@ -42,6 +49,7 @@
   loop:
     - {src: notify.sh.j2, dest: /etc/resticprofile/hooks/notify.sh}
     - {src: check-metered.sh.j2, dest: /etc/resticprofile/hooks/check-metered.sh}
+    - {src: check-home-network.py.j2, dest: /etc/resticprofile/hooks/check-home-network.py}
 
 - name: Deploy excludes.txt
   ansible.builtin.copy:
@@ -51,13 +59,16 @@
     owner: root
     group: root
 
-- name: Deploy systemd drop-in file
+- name: Deploy systemd drop-in files
   ansible.builtin.template:
-    src: 99-skip-metered.conf.j2
-    dest: /etc/resticprofile/99-skip-metered.conf
+    src: "{{ item }}.j2"
+    dest: "/etc/resticprofile/{{ item }}"
     mode: "0644"
     owner: root
     group: root
+  loop:
+    - 99-skip-metered.conf
+    - 99-check-home-network.conf
   register: backup_resticprofile_drop_in
   notify: Backup_resticprofile.reload_systemd
 

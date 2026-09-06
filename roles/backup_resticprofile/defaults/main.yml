@@ -12,6 +12,9 @@ backup_resticprofile_configure_enabled: true
 # A fresh full backup must still fit comfortably within this ceiling.
 backup_resticprofile_runtime_max: 4h
 
+# Scheduled repository checks read substantial data; only start on the home LAN.
+backup_resticprofile_check_home_network: "172.29.50.0/23"
+
 # Limit each workstation backup to about 50 Mbit/s, leaving bandwidth for the
 # Pilon backup jobs sharing the uplink. Restic expects KiB/s.
 backup_resticprofile_limit_upload: 6144

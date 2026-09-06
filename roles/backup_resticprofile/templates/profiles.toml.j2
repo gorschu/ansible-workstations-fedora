@@ -21,7 +21,7 @@
   password-file = "/etc/resticprofile/{{ backend }}.password"
   env-file = ["/etc/resticprofile/{{ backend }}.env"]
   initialize = true
-  systemd-drop-in-files = ["99-skip-metered.conf"]
+  systemd-drop-in-files = ["99-skip-metered.conf", "99-check-home-network.conf"]
 {% if backup_resticprofile_backend_options.get(backend) %}
   option = "{{ backup_resticprofile_backend_options[backend] }}"
 {% endif %}
