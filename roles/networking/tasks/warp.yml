@@ -1,0 +1,44 @@
+---
+# Cloudflare WARP WireGuard configuration; the connection is activated manually.
+
+- name: Configure Cloudflare WARP
+  when: networking_warp_state == 'present'
+  become: true
+  block:
+    - name: Require WARP credentials for this host
+      ansible.builtin.assert:
+        that:
+          - vault_networking_warp is defined
+          - inventory_hostname in vault_networking_warp
+        fail_msg: >-
+          WARP is enabled for {{ inventory_hostname }}, but vault.yml has no
+          vault_networking_warp entry for this host. Restore its credentials
+          or set networking_warp_state to absent.
+        quiet: true
+
+    - name: Deploy WARP WireGuard connection
+      ansible.builtin.template:
+        src: wg-warp.nmconnection.j2
+        dest: /etc/NetworkManager/system-connections/wg-warp.nmconnection
+        mode: "0600"
+        owner: root
+        group: root
+      no_log: true
+      notify: Networking.reload_connections
+
+    - name: Ensure WireGuard configuration directory exists
+      ansible.builtin.file:
+        path: /etc/wireguard
+        state: directory
+        mode: "0700"
+        owner: root
+        group: root
+
+    - name: Deploy wgcf account file
+      ansible.builtin.template:
+        src: wgcf-account.toml.j2
+        dest: /etc/wireguard/wgcf-account.toml
+        mode: "0600"
+        owner: root
+        group: root
+      no_log: true

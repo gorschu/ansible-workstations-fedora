@@ -1,6 +1,11 @@
 ---
 # networking handlers
 
+- name: Networking.reload_connections
+  become: true
+  ansible.builtin.command: nmcli connection reload
+  changed_when: true
+
 - name: Networking.reload_networkmanager
   become: true
   ansible.builtin.systemd_service:

@@ -35,6 +35,15 @@ networking_wireguard_home_enabled: true
 # the ephemeral port, causing handshake responses to land on a port nobody listens on.
 networking_wireguard_home_listen_port: 51820
 
+# Cloudflare WARP WireGuard connection (activated manually in NetworkManager)
+networking_warp_state: absent
+networking_warp_listen_port: 51821
+# Override DNS to Cloudflare's resolvers (breaks internal DNS, off by default)
+networking_warp_cloudflare_dns: false
+# LAN subnets routed via the main table instead of the WARP tunnel
+networking_warp_lan_subnets_ipv4: []
+networking_warp_lan_subnets_ipv6: []
+
 # Firewalld home zone - trusted LAN subnets and services
 networking_firewalld_home_sources: []
 networking_firewalld_home_services: []
