@@ -1,7 +1,9 @@
 ---
-# Fedora already provides most base workstation packages via the KDE Spin.
-# Keep these lists small and explicit; add only packages this playbook actually
-# needs but the installer does not provide.
+# Match the KDE edition identity selected by the Kickstart installer.
+base_fedora_identity_package: fedora-release-identity-kde-desktop
+
+# Kickstart provides the KDE desktop packages. Keep these additional lists small
+# and explicit; add only packages the installer does not provide.
 base_system_utils:
   - ansible-core
   - yp-tools

@@ -3,11 +3,30 @@
 
 - name: Configure baseline networking services
   become: true
+  tags: [firewall]
   block:
     - name: Install networking packages
       ansible.builtin.dnf:
         name: "{{ networking_packages }}"
         state: present
+
+    - name: Configure Fedora Workstation firewall defaults
+      ansible.builtin.lineinfile:
+        path: /etc/firewalld/firewalld.conf
+        regexp: '^\s*{{ item.key }}\s*='
+        line: "{{ item.key }}={{ item.value }}"
+        owner: root
+        group: root
+        mode: "0600"
+        backup: true
+      loop:
+        - key: DefaultZone
+          value: "{{ networking_firewalld_default_zone }}"
+        - key: IPv6_rpfilter
+          value: "{{ networking_firewalld_ipv6_rpfilter }}"
+      loop_control:
+        label: "{{ item.key }}"
+      notify: Networking.reload_firewalld
 
     - name: Enable and start firewalld
       ansible.builtin.systemd_service:

@@ -233,6 +233,8 @@ EOF
 
 %packages
 @^kde-desktop-environment
+# Select the KDE edition settings as well as its desktop packages.
+fedora-release-identity-kde-desktop
 openssh-server
 sudo
 python3

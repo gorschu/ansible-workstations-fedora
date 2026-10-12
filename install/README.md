@@ -11,6 +11,17 @@ data.
 The `OEMDRV` seed does not contain real secrets. Kickstart uses fixed dummy
 bootstrap values and Ansible phase0 replaces them immediately after first boot.
 
+The Kickstart explicitly installs `fedora-release-identity-kde-desktop` to select
+the KDE edition identity, defaults, and service presets. Selecting the KDE
+desktop environment alone does not select that edition identity. Ansible's base
+role also ensures the identity package is installed.
+
+The networking role manages Fedora's Workstation firewall defaults, which are
+also used by the KDE edition: `DefaultZone=FedoraWorkstation` and
+`IPv6_rpfilter=loose`. Explicit LAN source and interface zone assignments and
+the services configured in those zones still apply. The `FedoraWorkstation`
+zone permits incoming TCP and UDP ports 1025–65535.
+
 ## Requirements
 
 On the machine rendering the seed:

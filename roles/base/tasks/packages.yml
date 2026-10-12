@@ -2,6 +2,11 @@
 - name: Install base packages
   become: true
   block:
+    - name: Install Fedora edition identity
+      ansible.builtin.dnf:
+        name: "{{ base_fedora_identity_package }}"
+        state: present
+
     - name: Install system utilities
       when: base_system_utils | length > 0
       ansible.builtin.dnf:
