@@ -25,6 +25,12 @@ networking_warp_lan_subnets_ipv4:
 networking_warp_lan_subnets_ipv6:
   - "fd6a:7581:f7b::/64"
 
+# AirVPN - preserve direct LAN access while the regional VPN is active.
+networking_airvpn_lan_subnets_ipv4:
+  - "172.29.50.0/23"
+networking_airvpn_lan_subnets_ipv6:
+  - "fd6a:7581:f7b::/64"
+
 # Printers
 printing_printers:
   - name: wf-4830

@@ -44,6 +44,33 @@ networking_warp_cloudflare_dns: false
 networking_warp_lan_subnets_ipv4: []
 networking_warp_lan_subnets_ipv6: []
 
+# AirVPN WireGuard connections, shared by all workstations and activated manually.
+networking_airvpn_state: present
+networking_airvpn_mtu: 1320
+networking_airvpn_keepalive: 15
+networking_airvpn_dns_priority: 10
+# LAN subnets routed via the main table instead of the AirVPN tunnel.
+networking_airvpn_lan_subnets_ipv4: []
+networking_airvpn_lan_subnets_ipv6: []
+# Fixed unique listen ports, following the wg-home/WARP NetworkManager workaround.
+networking_airvpn_profiles:
+  - name: "AirVPN — America"
+    interface_name: wg-airvpn-am
+    endpoint: america3.vpn.airdns.org:1637
+    listen_port: 51822
+  - name: "AirVPN — Europe"
+    interface_name: wg-airvpn-eu
+    endpoint: europe3.vpn.airdns.org:1637
+    listen_port: 51823
+  - name: "AirVPN — Germany"
+    interface_name: wg-airvpn-de
+    endpoint: de3.vpn.airdns.org:1637
+    listen_port: 51824
+  - name: "AirVPN — Netherlands"
+    interface_name: wg-airvpn-nl
+    endpoint: nl3.vpn.airdns.org:1637
+    listen_port: 51825
+
 # Fedora's Workstation firewalld defaults, also used by the KDE edition.
 networking_firewalld_default_zone: FedoraWorkstation
 networking_firewalld_ipv6_rpfilter: loose

@@ -8,6 +8,7 @@ kde_state: present
 
 # vault/external integrations disabled for the VM baseline
 backup_resticprofile_state: absent
+networking_airvpn_state: absent
 networking_tailscale_state: absent
 networking_wireguard_home_enabled: false
 networking_wifi_enabled: false

@@ -58,15 +58,16 @@
       {{ networking_wifi_enabled | bool
          or networking_wireguard_home_enabled | bool
          or networking_warp_state == 'present'
+         or networking_airvpn_state == 'present'
          or networking_tailscale_state == 'present' }}
-  tags: [networking, tailscale, wireguard, warp, vpn, networkmanager, hostname]
+  tags: [networking, tailscale, wireguard, warp, airvpn, vpn, networkmanager, hostname]
 
 - name: Load vault secrets
   when: networking_vault_required | bool
   ansible.builtin.include_vars:
     file: "{{ playbook_dir }}/vault.yml"
   no_log: true
-  tags: [networking, tailscale, wireguard, warp, vpn, networkmanager, hostname]
+  tags: [networking, tailscale, wireguard, warp, airvpn, vpn, networkmanager, hostname]
 
 - name: Configure hostname
   ansible.builtin.import_tasks: hostname.yml
@@ -87,3 +88,7 @@
 - name: Configure Cloudflare WARP
   ansible.builtin.import_tasks: warp.yml
   tags: [warp, vpn]
+
+- name: Configure AirVPN
+  ansible.builtin.import_tasks: airvpn.yml
+  tags: [airvpn, wireguard, vpn]

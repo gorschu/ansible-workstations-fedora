@@ -1,0 +1,29 @@
+---
+# Shared AirVPN connections; NetworkManager activation stays manual.
+
+- name: Configure AirVPN
+  when: networking_airvpn_state == 'present'
+  become: true
+  block:
+    - name: Require shared AirVPN credentials
+      ansible.builtin.assert:
+        that:
+          - vault_networking_airvpn is defined
+        fail_msg: >-
+          AirVPN is enabled, but vault.yml has no vault_networking_airvpn entry.
+          Restore the shared credentials or set networking_airvpn_state to absent.
+        quiet: true
+
+    - name: Deploy AirVPN WireGuard connections
+      ansible.builtin.template:
+        src: wg-airvpn.nmconnection.j2
+        dest: "/etc/NetworkManager/system-connections/{{ item.interface_name }}.nmconnection"
+        mode: "0600"
+        owner: root
+        group: root
+      loop: "{{ networking_airvpn_profiles }}"
+      loop_control:
+        label: "{{ item.name }}"
+      no_log: true
+      diff: false
+      notify: Networking.reload_connections

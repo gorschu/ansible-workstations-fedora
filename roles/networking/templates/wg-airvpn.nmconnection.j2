@@ -1,0 +1,42 @@
+[connection]
+id={{ item.name }}
+type=wireguard
+interface-name={{ item.interface_name }}
+autoconnect=false
+
+[wireguard]
+private-key={{ vault_networking_airvpn.private_key }}
+private-key-flags=0
+listen-port={{ item.listen_port }}
+mtu={{ networking_airvpn_mtu }}
+ip4-auto-default-route=1
+ip6-auto-default-route=1
+
+[wireguard-peer.{{ vault_networking_airvpn.peer_public_key }}]
+endpoint={{ item.endpoint }}
+preshared-key={{ vault_networking_airvpn.preshared_key }}
+preshared-key-flags=0
+persistent-keepalive={{ networking_airvpn_keepalive }}
+allowed-ips=0.0.0.0/0;::/0;
+
+[ipv4]
+address1={{ vault_networking_airvpn.address_ipv4 }}
+method=manual
+dns={{ vault_networking_airvpn.dns_ipv4 | join(';') }};
+dns-search=~.;
+dns-priority={{ networking_airvpn_dns_priority }}
+{% for subnet in networking_airvpn_lan_subnets_ipv4 %}
+routing-rule{{ loop.index }}=priority 10 to {{ subnet }} table 254
+{% endfor %}
+
+[ipv6]
+address1={{ vault_networking_airvpn.address_ipv6 }}
+method=manual
+dns={{ vault_networking_airvpn.dns_ipv6 | join(';') }};
+dns-search=~.;
+dns-priority={{ networking_airvpn_dns_priority }}
+{% for subnet in networking_airvpn_lan_subnets_ipv6 %}
+routing-rule{{ loop.index }}=priority 10 to {{ subnet }} table 254
+{% endfor %}
+
+[proxy]
