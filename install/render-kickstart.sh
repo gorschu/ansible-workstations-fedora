@@ -34,8 +34,8 @@ command -v yq >/dev/null 2>&1 || die "yq is required to read host config"
 
 ISO_FILE="${BUILD_DIR}/fedora-kickstart-oemdrv.${INSTALL_HOSTNAME}.iso"
 
-INSTALL_DISK="$(yq -r ".\"${INSTALL_HOSTNAME}\".disk // \"\"" "$HOSTS_FILE")"
-SSH_PUBLIC_KEY="$(yq -r ".\"${INSTALL_HOSTNAME}\".ssh_public_key // \"\"" "$HOSTS_FILE")"
+INSTALL_DISK="$(yq -r "explode(.) | .\"${INSTALL_HOSTNAME}\".disk // \"\"" "$HOSTS_FILE")"
+SSH_PUBLIC_KEY="$(yq -r "explode(.) | .\"${INSTALL_HOSTNAME}\".ssh_public_key // \"\"" "$HOSTS_FILE")"
 [[ -n "$INSTALL_DISK" ]] || die "missing disk entry for host '${INSTALL_HOSTNAME}' in ${HOSTS_FILE}"
 [[ "$INSTALL_DISK" == /dev/disk/by-id/* ]] || \
   die "disk for host '${INSTALL_HOSTNAME}' must be an explicit /dev/disk/by-id path"
