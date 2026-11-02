@@ -18,8 +18,6 @@ virtualization_libvirt_state: present
 virtualization_incus_state: present
 
 # filesystems
-storage_zfs_state: absent
-storage_zfs_zrepl_state: absent
 backup_btrbk_state: present
 
 base_extra_packages:
