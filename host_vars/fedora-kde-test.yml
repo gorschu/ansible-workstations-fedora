@@ -1,7 +1,5 @@
 ---
 # VM target for Fedora phase1 bring-up only.
-# Do not use a full playbook run until desktop/network/virtualization roles are
-# ported away from Arch package assumptions.
 
 # desktop roles are not part of phase1
 kde_state: present
