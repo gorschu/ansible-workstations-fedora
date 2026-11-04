@@ -6,6 +6,8 @@
       ansible.builtin.dnf:
         name: "{{ base_fedora_identity_package }}"
         state: present
+        # Fedora identity packages conflict; replace the currently installed identity.
+        allowerasing: true
 
     - name: Install system utilities
       when: base_system_utils | length > 0
