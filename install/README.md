@@ -8,6 +8,12 @@ target disk. Partition 9 is special: if it already exists, it must be LUKS and
 is preserved; if it is missing, the installer creates it as encrypted Btrfs
 data.
 
+`/home` is on the root volume and is recreated too. Only data on partition 9
+survives a reinstall. Critical Kickstart script failures halt installation.
+
+Use the [testing and upgrade runbook](TESTING.md) for local VM validation,
+release upgrades, reinstall preservation checks, and Fedora 45 preparation.
+
 The `OEMDRV` seed does not contain real secrets. Kickstart uses fixed dummy
 bootstrap values and Ansible phase0 replaces them immediately after first boot.
 
@@ -245,7 +251,7 @@ disk a deterministic serial so `fedora-kde-test` can use this by-id path:
 Run from the repo root:
 
 ```bash
-./install/test-vm.sh --iso /path/to/Fedora-Everything-netinst.iso --recreate
+./install/test-vm.sh --iso /path/to/Fedora-Everything-netinst.iso
 ```
 
 The default VM uses passt networking and forwards host port `2222` to guest SSH:
@@ -254,12 +260,18 @@ The default VM uses passt networking and forwards host port `2222` to guest SSH:
 ssh -p 2222 gorschu@127.0.0.1
 ```
 
-To test partition 9 preservation, install once, put a file on the data volume,
-then reinstall without `--recreate` and with disk reuse:
+To test partition 9 preservation, install once, put a file on the mounted data
+volume, shut down the guest cleanly, then reinstall with disk reuse:
 
 ```bash
 ./install/test-vm.sh --iso /path/to/Fedora-Everything-netinst.iso --reuse-disk
 ```
+
+`--reuse-disk` requires an existing disk and a shut-off guest if its VM
+definition exists. It replaces that definition and resets UEFI variables, but
+retains the disk for Kickstart. Kickstart still recreates the OS partitions.
+`--recreate` instead discards the disk and starts blank; the two flags cannot
+be combined. See the runbook for UUID and file checks that prove preservation.
 
 Useful VM options:
 

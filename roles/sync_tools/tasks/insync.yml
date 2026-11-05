@@ -29,6 +29,16 @@
     state: present
   when: sync_tools_insync_state == "present"
 
+- name: Prevent Insync's installer from replacing the managed HTTPS repository
+  become: true
+  ansible.builtin.lineinfile:
+    path: "/etc/yum.repos.d/{{ sync_tools_insync_repo_file }}.repo"
+    # Insync's %post greps for this HTTP URL, including in comments. Without it,
+    # the script misses our HTTPS baseurl and overwrites the file on every update.
+    line: "# Insync installer detection: http://yum.insync.io/ (the baseurl above uses HTTPS)."
+    insertafter: EOF
+  when: sync_tools_insync_state == "present"
+
 - name: Install Insync sync tools
   become: true
   ansible.builtin.dnf:

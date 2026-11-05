@@ -67,7 +67,9 @@ Options:
                          location: uses virt-install --location/--initrd-inject.
                          cdrom: boots ISO normally; edit GRUB if needed.
   --recreate             Destroy/undefine an existing VM and recreate its disk.
-  --reuse-disk           Reuse an existing qcow2 instead of refusing to continue.
+  --reuse-disk           Reinstall onto an existing qcow2, retaining its bytes
+                         until Kickstart runs. Replaces a shut-off VM definition.
+                         Cannot be combined with --recreate.
   --no-autoconsole       Do not auto-open a graphical console.
   --print-only           Print the virt-install command without running it.
   -h, --help             Show this help.
@@ -94,6 +96,7 @@ host_tool_env=(
   -u VIRTUAL_ENV
   -u PYTHONHOME
   -u PYTHONPATH
+  LC_ALL=C
   PATH=/usr/local/sbin:/usr/local/bin:/usr/bin:/bin
 )
 
@@ -209,6 +212,10 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+if [[ "$RECREATE" == true && "$REUSE_DISK" == true ]]; then
+  die "--recreate and --reuse-disk are mutually exclusive"
+fi
+
 [[ -n "$FEDORA_ISO" ]] || die "missing --iso PATH or FEDORA_ISO"
 [[ -f "$FEDORA_ISO" ]] || die "Fedora ISO not found: $FEDORA_ISO"
 [[ "$INSTALL_HOSTNAME" =~ ^[A-Za-z0-9][A-Za-z0-9.-]*$ ]] || die "--host may only contain letters, digits, dots, and dashes"
@@ -221,6 +228,9 @@ if [[ -z "$VM_DISK" ]]; then
   VM_DISK="${DISK_DIR}/${VM_NAME}.qcow2"
 else
   VM_DISK="$(realpath -m "$VM_DISK")"
+fi
+if [[ "$REUSE_DISK" == true && ! -f "$VM_DISK" ]]; then
+  die "--reuse-disk requires an existing disk: ${VM_DISK}"
 fi
 if [[ -z "$VM_NETWORK" ]]; then
   if [[ "$LIBVIRT_CONNECT" == "qemu:///system" ]]; then
@@ -251,17 +261,28 @@ if [[ "$BOOT_MODE" == "kernel" ]]; then
   extract_installer_boot_files
   KERNEL_ARGS="inst.stage2=hd:LABEL=${ISO_LABEL} ${KS_CDROM_ARG}"
   ACTIVE_KS_ARG="$KS_CDROM_ARG"
+elif [[ "$BOOT_MODE" == "cdrom" ]]; then
+  ACTIVE_KS_ARG="automatic OEMDRV discovery"
 fi
 
 if [[ "$PRINT_ONLY" != true ]]; then
   if run_host_tool virsh --connect "$LIBVIRT_CONNECT" dominfo "$VM_NAME" >/dev/null 2>&1; then
-    if [[ "$RECREATE" != true ]]; then
-      die "VM '${VM_NAME}' already exists; use --recreate to replace it"
+    if [[ "$RECREATE" != true && "$REUSE_DISK" != true ]]; then
+      die "VM '${VM_NAME}' already exists; use --reuse-disk to reinstall or --recreate to replace its disk"
     fi
 
-    run_host_tool virsh --connect "$LIBVIRT_CONNECT" destroy "$VM_NAME" >/dev/null 2>&1 || true
+    vm_state="$(run_host_tool virsh --connect "$LIBVIRT_CONNECT" domstate "$VM_NAME")"
+    if [[ "$vm_state" != "shut off" ]]; then
+      if [[ "$REUSE_DISK" == true ]]; then
+        die "VM '${VM_NAME}' must be shut off before --reuse-disk; shut it down and retry"
+      fi
+      run_host_tool virsh --connect "$LIBVIRT_CONNECT" destroy "$VM_NAME"
+    fi
+
+    # Undefine only the domain and its firmware variables, never its storage.
+    # Do not continue to disk removal/installation if undefining fails.
     run_host_tool virsh --connect "$LIBVIRT_CONNECT" undefine "$VM_NAME" --nvram >/dev/null 2>&1 || \
-      run_host_tool virsh --connect "$LIBVIRT_CONNECT" undefine "$VM_NAME" >/dev/null 2>&1 || true
+      run_host_tool virsh --connect "$LIBVIRT_CONNECT" undefine "$VM_NAME"
   fi
 
   if [[ -e "$VM_DISK" ]]; then
@@ -290,7 +311,6 @@ virt_install_cmd=(
   --graphics spice
   --video virtio
   --os-variant "$OS_VARIANT"
-  --check path_in_use=off
 )
 
 if [[ "$BOOT_MODE" == "kernel" ]]; then

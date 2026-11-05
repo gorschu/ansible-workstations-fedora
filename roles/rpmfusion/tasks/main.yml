@@ -18,10 +18,19 @@
         state: present
         disable_gpg_check: true
 
+    - name: Ensure DNF repository override directory exists
+      when: rpmfusion_openh264_enabled
+      ansible.builtin.file:
+        path: /etc/dnf/repos.override.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
     - name: Check Fedora Cisco OpenH264 repository file
       when: rpmfusion_openh264_enabled
       ansible.builtin.stat:
-        path: /etc/yum.repos.d/fedora-cisco-openh264.repo
+        path: /usr/share/dnf5/repos.d/fedora-cisco-openh264.repo
       register: rpmfusion_openh264_repo_file
 
     - name: Fail if Fedora Cisco OpenH264 repository file is missing
@@ -31,10 +40,10 @@
       ansible.builtin.fail:
         msg: Fedora Cisco OpenH264 repository file is missing; install/repair fedora-repos before enabling it.
 
-    - name: Enable Fedora Cisco OpenH264 repository
+    - name: Enable Fedora Cisco OpenH264 repository through a DNF override
       when: rpmfusion_openh264_enabled
       community.general.ini_file:
-        path: /etc/yum.repos.d/fedora-cisco-openh264.repo
+        path: /etc/dnf/repos.override.d/90-workstations-openh264.repo
         section: fedora-cisco-openh264
         option: enabled
         value: "1"

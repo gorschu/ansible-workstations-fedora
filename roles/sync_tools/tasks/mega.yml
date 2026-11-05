@@ -1,4 +1,27 @@
 ---
+- name: Ensure DNF repository override directory exists for MEGA
+  become: true
+  ansible.builtin.file:
+    path: /etc/dnf/repos.override.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: sync_tools_mega_state == "present"
+
+- name: Disable the duplicate repository recreated by MEGA package scripts
+  become: true
+  community.general.ini_file:
+    path: /etc/dnf/repos.override.d/90-workstations-mega.repo
+    section: MEGAsync
+    option: enabled
+    value: "0"
+    no_extra_spaces: true
+    owner: root
+    group: root
+    mode: "0644"
+  when: sync_tools_mega_state == "present"
+
 - name: Add MEGA repository GPG key
   become: true
   ansible.builtin.rpm_key:
@@ -51,4 +74,14 @@
   ansible.builtin.rpm_key:
     state: absent
     key: "{{ sync_tools_mega_repo_gpgkey }}"
+  when: sync_tools_mega_state == "absent"
+
+- name: Remove MEGA's generated repository and its override
+  become: true
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /etc/yum.repos.d/megasync.repo
+    - /etc/dnf/repos.override.d/90-workstations-mega.repo
   when: sync_tools_mega_state == "absent"

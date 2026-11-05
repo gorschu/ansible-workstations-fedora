@@ -25,7 +25,7 @@ user --name=@@USER@@ --uid=1000 --gid=1000 --groups=wheel --password=@@USER_PASS
 @@SSHKEY_LINE@@
 services --enabled=NetworkManager,sshd
 
-%pre --interpreter=/bin/bash --log=/tmp/fedora-workstation-storage-pre.log
+%pre --erroronfail --interpreter=/bin/bash --log=/tmp/fedora-workstation-storage-pre.log
 set -euo pipefail
 
 ROOT_SIZE_MIB=153600
@@ -244,7 +244,7 @@ cryptsetup
 gdisk
 %end
 
-%post --nochroot --interpreter=/bin/bash --log=/tmp/fedora-workstation-post-nochroot.log
+%post --erroronfail --nochroot --interpreter=/bin/bash --log=/tmp/fedora-workstation-post-nochroot.log
 set -euo pipefail
 
 if [[ ! -f /tmp/fedora-workstation-storage.env ]]; then
@@ -345,8 +345,11 @@ cp /tmp/fedora-workstation-storage.env "${target_root}/root/" || true
 cp /tmp/fedora-workstation-post-nochroot.log "${target_root}/root/" || true
 %end
 
-%post --interpreter=/bin/bash --log=/root/fedora-workstation-post.log
+%post --erroronfail --interpreter=/bin/bash --log=/root/fedora-workstation-post.log
 set -euo pipefail
 
 install -d -o @@USER@@ -g @@USER@@ -m 0700 /home/@@USER@@/data
+# Plasma Setup has its own first-run gate, independent of Anaconda firstboot.
+# Kickstart already configured the account, locale, keyboard, time and network.
+install -o root -g root -m 0644 /dev/null /etc/plasma-setup-done
 %end
