@@ -11,9 +11,8 @@ scaleway-cli = "2.60.0"               # renovate: datasource=github-releases dep
 sops = "3.13.3"                      # renovate: datasource=github-releases depName=getsops/sops
 age = "v1.3.1"                       # renovate: datasource=github-releases depName=FiloSottile/age
 prek = "v0.3.6"                      # renovate: datasource=github-releases depName=j178/prek
-# Ansible 14 uses core 2.21, which supports controller Python through 3.14.
-# Remove the private runtime override once stable Ansible supports Python 3.15.
-ansible = { version = "14.5.0", python = "3.14" } # renovate: datasource=pypi depName=ansible
+# Collections are installed separately from requirements.yml.
+"pipx:ansible-core" = "2.22.0"        # renovate: datasource=pypi depName=ansible-core
 pipx = "latest"
 uv = "latest"
 python = "3.15"

@@ -49,19 +49,18 @@ signature result, and SHA256 together with the test record.
 
 Choose an Ansible version that supports both controller and target Python
 ([support matrix](https://docs.ansible.com/projects/ansible/latest/reference_appendices/release_and_maintenance.html)).
-Fedora 45's Python 3.15 requires core 2.22. If the mise-managed Ansible does not
-support it, create an isolated controller in the ignored build directory:
+The project pins core 2.22 directly in mise for Fedora 45's Python 3.15.
+Install the configured engine and the collections from `requirements.yml`:
 
 ```bash
-uv venv --python 3.15 install/build/test-controller
-uv pip install --python install/build/test-controller/bin/python ansible-core==2.22.0 pykickstart
-export PATH="$PWD/install/build/test-controller/bin:$PATH"
-ansible-galaxy collection install -r requirements.yml
-ansible --version
+mise install pipx:ansible-core
+mise exec -- ansible-galaxy collection install -r requirements.yml
+mise exec -- ansible --version
 ```
 
-Keep this PATH active for subsequent Ansible and validator commands in this
-runbook.
+With mise activated in your shell, subsequent Ansible commands use this engine.
+Otherwise prefix them with `mise exec --`. The playbook wrappers install the
+required collections automatically.
 
 The harness needs KVM access, libvirt session support, UEFI firmware,
 `virt-install`, `virsh`, `qemu-img`, `passt`, `bsdtar`, `isoinfo`, `genisoimage`,
@@ -101,7 +100,7 @@ first-run gate: Anaconda's `firstboot --disable` does not disable it. Kickstart
 already supplies the account and initial settings, so its post-install script
 creates KDE's [documented completion marker](https://github.com/KDE/plasma-setup#completion-flag-file).
 Run
-`ksvalidator -v F45 install/build/oemdrv/ks.cfg` using a pykickstart version
+`uvx --from pykickstart ksvalidator -v F45 install/build/oemdrv/ks.cfg` using a pykickstart version
 that supports the target release. Do not use `--followincludes`: the storage
 include is generated inside the installer. Parser validation does not execute
 `%pre`, validate its generated storage layout, or prove package availability.
