@@ -8,10 +8,10 @@ virtualization_common_packages:
 virtualization_incus_state: absent  # present or absent
 
 # Packages required for Incus (role-specific)
+# Fedora 45's incus package pulls in container-selinux when SELinux is installed.
 virtualization_incus_packages:
   - incus
   - incus-tools
-  - incus-selinux
 
 # Users granted Incus administrative access. Override in inventory or play vars to customize.
 virtualization_incus_admin_users:
