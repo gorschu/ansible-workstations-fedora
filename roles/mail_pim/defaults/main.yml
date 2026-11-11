@@ -9,6 +9,7 @@ mail_pim_mail_packages:
   - msmtp
   - neomutt
   - notmuch
+  - notmuch-devel
   - par
   - poppler-utils
   - urlscan
