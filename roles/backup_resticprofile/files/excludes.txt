@@ -51,6 +51,12 @@ Cloud
 .config/Code/CachedExtensionVSIXs/
 .config/Code/User/workspaceStorage/
 .vscode/extensions/*/node_modules/
+/home/*/data/general/config/vscode/user-data/CachedData/
+/home/*/data/general/config/vscode/user-data/Cache/
+/home/*/data/general/config/vscode/user-data/CachedExtensions/
+/home/*/data/general/config/vscode/user-data/CachedExtensionVSIXs/
+/home/*/data/general/config/vscode/user-data/User/workspaceStorage/
+/home/*/data/general/config/vscode/dot-vscode/extensions/*/node_modules/
 .local/share/code-server/CachedData/
 .local/share/JetBrains/
 
